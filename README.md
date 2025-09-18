@@ -7,6 +7,18 @@ A professional open-source web-based teleprompter application with controller-di
 
 Open Teleprompter provides a complete solution for professional teleprompter needs, featuring real-time synchronization between controller and display interfaces, manuscript formatting, scheduled broadcasts, and Docker deployment support.
 
+## Screenshots
+
+### Controller Interface
+The controller provides comprehensive management of your teleprompter session:
+
+![Controller Interface](controller.png)
+
+### Display Interface
+The clean, distraction-free display optimized for teleprompter use:
+
+![Display Interface](display.png)
+
 ## Features
 
 - **Controller-Display Architecture**: Separate interfaces connected via WebSocket
