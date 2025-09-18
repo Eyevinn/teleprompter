@@ -77,7 +77,8 @@ let currentState = {
     startTime: null,
     pausedTime: 0,
     mirrorMode: false,
-    hideTimer: false
+    hideTimer: false,
+    onAir: false
 };
 
 wss.on('connection', (ws, req) => {
@@ -129,15 +130,23 @@ wss.on('connection', (ws, req) => {
                     broadcastToDisplays({ type: 'setHideTimer', enabled: data.enabled });
                     break;
                     
+                case 'setOnAir':
+                    currentState.onAir = data.enabled;
+                    broadcastToDisplays({ type: 'setOnAir', enabled: data.enabled });
+                    break;
+                    
                 case 'start':
                     currentState.isPlaying = true;
                     currentState.isPaused = false;
+                    currentState.onAir = true; // Automatically turn on air indicator
                     currentState.startTime = Date.now() - (currentState.pausedTime || 0);
                     broadcastToDisplays({ 
                         type: 'start', 
                         startTime: currentState.startTime,
                         pausedTime: currentState.pausedTime
                     });
+                    // Send on air update to displays
+                    broadcastToDisplays({ type: 'setOnAir', enabled: true });
                     break;
                     
                 case 'pause':

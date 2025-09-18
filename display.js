@@ -30,6 +30,7 @@ class TeleprompterDisplay {
         this.connectionStatus = document.getElementById('connection-status');
         this.statusIndicator = this.connectionStatus.querySelector('.status-indicator');
         this.statusText = this.connectionStatus.querySelector('.status-text');
+        this.onAirIndicator = document.getElementById('on-air-indicator');
     }
     
     connectWebSocket() {
@@ -133,6 +134,10 @@ class TeleprompterDisplay {
                 this.setHideTimer(data.enabled);
                 break;
                 
+            case 'setOnAir':
+                this.setOnAir(data.enabled);
+                break;
+                
             case 'start':
                 this.start(data.startTime, data.pausedTime);
                 break;
@@ -168,6 +173,7 @@ class TeleprompterDisplay {
         this.prompterText.style.fontSize = this.fontSize + 'px';
         this.setMirrorMode(state.mirrorMode);
         this.setHideTimer(state.hideTimer);
+        this.setOnAir(state.onAir);
         
         if (state.isPlaying) {
             this.start(state.startTime, state.pausedTime);
@@ -204,6 +210,14 @@ class TeleprompterDisplay {
             timerDisplay.style.display = 'none';
         } else {
             timerDisplay.style.display = 'flex';
+        }
+    }
+    
+    setOnAir(enabled) {
+        if (enabled) {
+            this.onAirIndicator.classList.add('active');
+        } else {
+            this.onAirIndicator.classList.remove('active');
         }
     }
     

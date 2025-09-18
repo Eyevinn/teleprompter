@@ -32,6 +32,7 @@ class TeleprompterController {
         this.fontSizeDisplay = document.getElementById('font-size-display');
         this.mirrorModeCheckbox = document.getElementById('mirror-mode');
         this.hideTimerCheckbox = document.getElementById('hide-timer');
+        this.onAirModeCheckbox = document.getElementById('on-air-mode');
         this.startBtn = document.getElementById('start-btn');
         this.pauseBtn = document.getElementById('pause-btn');
         this.resetBtn = document.getElementById('reset-btn');
@@ -66,6 +67,7 @@ class TeleprompterController {
         this.fontSizeControl.addEventListener('input', (e) => this.updateFontSize(e.target.value));
         this.mirrorModeCheckbox.addEventListener('change', (e) => this.updateMirrorMode(e.target.checked));
         this.hideTimerCheckbox.addEventListener('change', (e) => this.updateHideTimer(e.target.checked));
+        this.onAirModeCheckbox.addEventListener('change', (e) => this.updateOnAir(e.target.checked));
         this.startBtn.addEventListener('click', () => this.start());
         this.pauseBtn.addEventListener('click', () => this.pause());
         this.resetBtn.addEventListener('click', () => this.reset());
@@ -168,6 +170,7 @@ class TeleprompterController {
         this.updateSegmentLength(); // This will send the segment length
         this.sendMessage({ type: 'setMirrorMode', enabled: this.mirrorModeCheckbox.checked });
         this.sendMessage({ type: 'setHideTimer', enabled: this.hideTimerCheckbox.checked });
+        this.sendMessage({ type: 'setOnAir', enabled: this.onAirModeCheckbox.checked });
     }
     
     handleMessage(data) {
@@ -321,6 +324,10 @@ class TeleprompterController {
         this.sendMessage({ type: 'setHideTimer', enabled: enabled });
     }
     
+    updateOnAir(enabled) {
+        this.sendMessage({ type: 'setOnAir', enabled: enabled });
+    }
+    
     start() {
         if (this.isPaused) {
             this.resume();
@@ -330,6 +337,9 @@ class TeleprompterController {
         this.isPlaying = true;
         this.isPaused = false;
         this.startTime = Date.now() - (this.pausedTime || 0);
+        
+        // Auto-enable on air indicator
+        this.onAirModeCheckbox.checked = true;
         
         this.startBtn.disabled = true;
         this.pauseBtn.disabled = false;
