@@ -161,6 +161,105 @@ body {
     background: #2980b9;
 }
 
+.file-options {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.format-btn {
+    background: #e67e22 !important;
+    color: white;
+}
+
+.format-btn:hover {
+    background: #d35400 !important;
+}
+
+.formatting-options {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #e67e22;
+}
+
+.format-details {
+    margin-top: 10px;
+}
+
+.format-details summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #2c3e50;
+    padding: 5px 0;
+}
+
+.format-details summary:hover {
+    color: #e67e22;
+}
+
+.format-checkboxes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+    padding-left: 15px;
+}
+
+.format-checkboxes .checkbox-label {
+    font-size: 13px;
+    color: #555;
+}
+
+@media (max-width: 768px) {
+    .format-checkboxes {
+        grid-template-columns: 1fr;
+    }
+    
+    .file-options {
+        flex-direction: column;
+    }
+}
+
+.time-input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.time-input {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.time-input input {
+    width: 60px;
+    padding: 8px 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.time-input label {
+    font-size: 12px;
+    color: #666;
+    margin: 0;
+}
+
+.time-separator {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 0 4px;
+}
+
 .checkbox-group {
     display: flex;
     flex-direction: column;

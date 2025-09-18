@@ -65,8 +65,8 @@ body {
     position: absolute;
     width: 100%;
     transition: transform 0.1s linear;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 80%;
+    transform: translateY(0%);
 }
 
 #prompter-text p {

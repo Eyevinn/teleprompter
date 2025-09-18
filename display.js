@@ -121,7 +121,7 @@ class TeleprompterDisplay {
                 break;
                 
             case 'setSegmentLength':
-                this.segmentDuration = data.value * 60 * 1000;
+                this.segmentDuration = (data.totalSeconds || data.value || 600) * 1000; // Convert to milliseconds
                 this.updateCountdownDisplay();
                 break;
                 
@@ -163,7 +163,7 @@ class TeleprompterDisplay {
         
         this.speed = state.speed;
         this.fontSize = state.fontSize;
-        this.segmentDuration = state.segmentLength * 60 * 1000;
+        this.segmentDuration = (state.segmentLength || 600) * 1000; // Convert seconds to milliseconds
         
         this.prompterText.style.fontSize = this.fontSize + 'px';
         this.setMirrorMode(state.mirrorMode);
@@ -236,8 +236,8 @@ class TeleprompterDisplay {
         this.stopScrolling();
         this.stopTimer();
         
-        // Reset text position
-        this.prompterText.style.transform = 'translateY(-50%)';
+        // Reset text position to starting position (below screen)
+        this.prompterText.style.transform = 'translateY(0%)';
         this.updateDisplay();
     }
     
@@ -251,7 +251,10 @@ class TeleprompterDisplay {
             const pixelsPerFrame = pixelsPerSecond / 60; // 60 FPS
             
             this.currentPosition += pixelsPerFrame;
-            const translateY = -50 - (this.currentPosition / window.innerHeight) * 100;
+            
+            // Start from below screen (100%) and scroll up to show content naturally
+            // The text will scroll from bottom to top, showing all content from the beginning
+            const translateY = -(this.currentPosition / window.innerHeight) * 100;
             this.prompterText.style.transform = `translateY(${translateY}%)`;
             
             this.animationId = requestAnimationFrame(scroll);

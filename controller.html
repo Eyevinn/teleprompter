@@ -28,7 +28,41 @@
                 <div class="control-group">
                     <label for="file-upload">Upload Manuscript:</label>
                     <input type="file" id="file-upload" accept=".txt,.docx,.pdf">
-                    <button id="clear-text">Clear</button>
+                    <div class="file-options">
+                        <button id="clear-text">Clear</button>
+                        <button id="format-text" class="format-btn">Format for Teleprompter</button>
+                    </div>
+                    <div class="formatting-options" id="formatting-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="auto-format" checked>
+                            Auto-format on upload
+                        </label>
+                        <details class="format-details">
+                            <summary>Formatting Options</summary>
+                            <div class="format-checkboxes">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="format-caps" checked>
+                                    Convert to UPPERCASE
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="format-sentences" checked>
+                                    One sentence per line
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="format-paragraphs" checked>
+                                    Add paragraph breaks
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="format-punctuation" checked>
+                                    Enhance punctuation pauses
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="format-numbers" checked>
+                                    Convert numbers to words
+                                </label>
+                            </div>
+                        </details>
+                    </div>
                 </div>
                 
                 <div class="control-group">
@@ -38,8 +72,18 @@
                 </div>
                 
                 <div class="control-group">
-                    <label for="segment-length">Segment Length (minutes):</label>
-                    <input type="number" id="segment-length" min="1" max="60" value="10">
+                    <label for="segment-length">Segment Length:</label>
+                    <div class="time-input-group">
+                        <div class="time-input">
+                            <input type="number" id="segment-minutes" min="0" max="99" value="10">
+                            <label for="segment-minutes">min</label>
+                        </div>
+                        <div class="time-separator">:</div>
+                        <div class="time-input">
+                            <input type="number" id="segment-seconds" min="0" max="59" value="0">
+                            <label for="segment-seconds">sec</label>
+                        </div>
+                    </div>
                     <div class="duration-info">
                         <div class="info-row">
                             <span>Word count: <span id="word-count">0</span></span>

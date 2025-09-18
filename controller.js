@@ -26,7 +26,8 @@ class TeleprompterController {
         this.clearBtn = document.getElementById('clear-text');
         this.speedControl = document.getElementById('speed-control');
         this.speedDisplay = document.getElementById('speed-display');
-        this.segmentLengthInput = document.getElementById('segment-length');
+        this.segmentMinutesInput = document.getElementById('segment-minutes');
+        this.segmentSecondsInput = document.getElementById('segment-seconds');
         this.fontSizeControl = document.getElementById('font-size');
         this.fontSizeDisplay = document.getElementById('font-size-display');
         this.mirrorModeCheckbox = document.getElementById('mirror-mode');
@@ -46,13 +47,22 @@ class TeleprompterController {
         this.statusText = this.connectionStatus.querySelector('.status-text');
         this.displayUrl = document.getElementById('display-url');
         this.copyUrlBtn = document.getElementById('copy-url');
+        this.formatBtn = document.getElementById('format-text');
+        this.formattingOptions = document.getElementById('formatting-options');
+        this.autoFormatCheckbox = document.getElementById('auto-format');
+        this.formatCapsCheckbox = document.getElementById('format-caps');
+        this.formatSentencesCheckbox = document.getElementById('format-sentences');
+        this.formatParagraphsCheckbox = document.getElementById('format-paragraphs');
+        this.formatPunctuationCheckbox = document.getElementById('format-punctuation');
+        this.formatNumbersCheckbox = document.getElementById('format-numbers');
     }
     
     bindEvents() {
         this.fileUpload.addEventListener('change', (e) => this.handleFileUpload(e));
         this.clearBtn.addEventListener('click', () => this.clearText());
         this.speedControl.addEventListener('input', (e) => this.updateSpeed(e.target.value));
-        this.segmentLengthInput.addEventListener('input', (e) => this.updateSegmentLength(e.target.value));
+        this.segmentMinutesInput.addEventListener('input', () => this.updateSegmentLength());
+        this.segmentSecondsInput.addEventListener('input', () => this.updateSegmentLength());
         this.fontSizeControl.addEventListener('input', (e) => this.updateFontSize(e.target.value));
         this.mirrorModeCheckbox.addEventListener('change', (e) => this.updateMirrorMode(e.target.checked));
         this.hideTimerCheckbox.addEventListener('change', (e) => this.updateHideTimer(e.target.checked));
@@ -60,6 +70,10 @@ class TeleprompterController {
         this.pauseBtn.addEventListener('click', () => this.pause());
         this.resetBtn.addEventListener('click', () => this.reset());
         this.copyUrlBtn.addEventListener('click', () => this.copyDisplayUrl());
+        this.formatBtn.addEventListener('click', () => this.formatTextForTeleprompter());
+        
+        // Initially show formatting options
+        this.formattingOptions.style.display = 'block';
         
         // Text preview updates
         this.textPreview.addEventListener('input', () => {
@@ -151,7 +165,7 @@ class TeleprompterController {
         // Send all current settings
         this.sendMessage({ type: 'setSpeed', value: this.speed });
         this.sendMessage({ type: 'setFontSize', value: this.fontSize });
-        this.sendMessage({ type: 'setSegmentLength', value: parseInt(this.segmentLengthInput.value) });
+        this.updateSegmentLength(); // This will send the segment length
         this.sendMessage({ type: 'setMirrorMode', enabled: this.mirrorModeCheckbox.checked });
         this.sendMessage({ type: 'setHideTimer', enabled: this.hideTimerCheckbox.checked });
     }
@@ -244,6 +258,11 @@ class TeleprompterController {
     }
     
     setPrompterText(text) {
+        // Auto-format if enabled
+        if (this.autoFormatCheckbox.checked) {
+            text = this.formatTextForTeleprompterStandards(text);
+        }
+        
         const paragraphs = text.split('\n\n').filter(p => p.trim().length > 0);
         this.textPreview.innerHTML = paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
         this.sendTextUpdate();
@@ -269,9 +288,21 @@ class TeleprompterController {
         this.updateDurationCalculations();
     }
     
-    updateSegmentLength(value) {
-        this.segmentDuration = parseInt(value) * 60 * 1000;
-        this.sendMessage({ type: 'setSegmentLength', value: parseInt(value) });
+    updateSegmentLength() {
+        const minutes = parseInt(this.segmentMinutesInput.value) || 0;
+        const seconds = parseInt(this.segmentSecondsInput.value) || 0;
+        
+        // Convert to milliseconds
+        this.segmentDuration = (minutes * 60 + seconds) * 1000;
+        
+        // Send total seconds to server
+        this.sendMessage({ 
+            type: 'setSegmentLength', 
+            minutes: minutes,
+            seconds: seconds,
+            totalSeconds: minutes * 60 + seconds
+        });
+        
         this.updateDurationCalculations();
         this.updateCountdownDisplay();
     }
@@ -475,6 +506,117 @@ class TeleprompterController {
                 this.copyUrlBtn.textContent = 'Copy';
             }, 2000);
         });
+    }
+    
+    formatTextForTeleprompter() {
+        const currentText = this.textPreview.textContent || this.textPreview.innerText || '';
+        if (!currentText.trim()) {
+            alert('No text to format. Please upload a manuscript or enter text first.');
+            return;
+        }
+        
+        const formattedText = this.formatTextForTeleprompterStandards(currentText);
+        this.setPrompterTextDirectly(formattedText);
+    }
+    
+    setPrompterTextDirectly(text) {
+        const paragraphs = text.split('\n\n').filter(p => p.trim().length > 0);
+        this.textPreview.innerHTML = paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
+        this.sendTextUpdate();
+        this.updateDurationCalculations();
+    }
+    
+    formatTextForTeleprompterStandards(text) {
+        let formattedText = text;
+        
+        // Apply selected formatting options
+        if (this.formatCapsCheckbox.checked) {
+            formattedText = this.convertToUppercase(formattedText);
+        }
+        
+        if (this.formatNumbersCheckbox.checked) {
+            formattedText = this.convertNumbersToWords(formattedText);
+        }
+        
+        if (this.formatPunctuationCheckbox.checked) {
+            formattedText = this.enhancePunctuationPauses(formattedText);
+        }
+        
+        if (this.formatSentencesCheckbox.checked) {
+            formattedText = this.formatSentenceBreaks(formattedText);
+        }
+        
+        if (this.formatParagraphsCheckbox.checked) {
+            formattedText = this.addParagraphBreaks(formattedText);
+        }
+        
+        return formattedText;
+    }
+    
+    convertToUppercase(text) {
+        return text.toUpperCase();
+    }
+    
+    convertNumbersToWords(text) {
+        const numberWords = {
+            '0': 'ZERO', '1': 'ONE', '2': 'TWO', '3': 'THREE', '4': 'FOUR',
+            '5': 'FIVE', '6': 'SIX', '7': 'SEVEN', '8': 'EIGHT', '9': 'NINE',
+            '10': 'TEN', '11': 'ELEVEN', '12': 'TWELVE', '13': 'THIRTEEN',
+            '14': 'FOURTEEN', '15': 'FIFTEEN', '16': 'SIXTEEN', '17': 'SEVENTEEN',
+            '18': 'EIGHTEEN', '19': 'NINETEEN', '20': 'TWENTY', '30': 'THIRTY',
+            '40': 'FORTY', '50': 'FIFTY', '60': 'SIXTY', '70': 'SEVENTY',
+            '80': 'EIGHTY', '90': 'NINETY', '100': 'ONE HUNDRED'
+        };
+        
+        // Convert simple numbers (0-100) to words
+        return text.replace(/\b(\d{1,3})\b/g, (match, number) => {
+            const num = parseInt(number);
+            if (numberWords[num]) {
+                return numberWords[num];
+            } else if (num < 100) {
+                const tens = Math.floor(num / 10) * 10;
+                const ones = num % 10;
+                if (tens > 0 && ones > 0) {
+                    return `${numberWords[tens]}-${numberWords[ones]}`;
+                }
+            }
+            return match; // Return original if not found
+        });
+    }
+    
+    enhancePunctuationPauses(text) {
+        // Add extra spaces for natural pauses
+        return text
+            .replace(/\./g, '. ')  // Period pause
+            .replace(/,/g, ', ')   // Comma pause
+            .replace(/;/g, '; ')   // Semicolon pause
+            .replace(/:/g, ': ')   // Colon pause
+            .replace(/\?/g, '? ')  // Question pause
+            .replace(/!/g, '! ')   // Exclamation pause
+            .replace(/\s+/g, ' ')  // Clean up multiple spaces
+            .trim();
+    }
+    
+    formatSentenceBreaks(text) {
+        // Put each sentence on its own line
+        return text
+            .replace(/([.!?])\s+/g, '$1\n\n')  // Line break after sentence-ending punctuation
+            .replace(/\n\n+/g, '\n\n')         // Clean up multiple line breaks
+            .trim();
+    }
+    
+    addParagraphBreaks(text) {
+        // Ensure proper paragraph spacing for teleprompter readability
+        const sentences = text.split(/\n\n/);
+        const groupedSentences = [];
+        
+        // Group sentences into logical paragraphs (3-4 sentences max)
+        for (let i = 0; i < sentences.length; i += 3) {
+            const paragraph = sentences.slice(i, i + 3).join('\n\n');
+            groupedSentences.push(paragraph);
+        }
+        
+        return groupedSentences.join('\n\n\n'); // Extra space between paragraphs
     }
 }
 

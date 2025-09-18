@@ -68,7 +68,9 @@ let currentState = {
     text: '',
     speed: 150,
     fontSize: 48,
-    segmentLength: 10,
+    segmentLength: 10 * 60, // 10 minutes in seconds
+    segmentMinutes: 10,
+    segmentSeconds: 0,
     isPlaying: false,
     isPaused: false,
     currentPosition: 0,
@@ -106,8 +108,15 @@ wss.on('connection', (ws, req) => {
                     break;
                     
                 case 'setSegmentLength':
-                    currentState.segmentLength = data.value;
-                    broadcastToDisplays({ type: 'setSegmentLength', value: data.value });
+                    currentState.segmentLength = data.totalSeconds || data.value || 10 * 60; // fallback to 10 minutes
+                    currentState.segmentMinutes = data.minutes || Math.floor(currentState.segmentLength / 60);
+                    currentState.segmentSeconds = data.seconds || (currentState.segmentLength % 60);
+                    broadcastToDisplays({ 
+                        type: 'setSegmentLength', 
+                        totalSeconds: currentState.segmentLength,
+                        minutes: currentState.segmentMinutes,
+                        seconds: currentState.segmentSeconds
+                    });
                     break;
                     
                 case 'setMirrorMode':
