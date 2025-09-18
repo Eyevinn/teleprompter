@@ -1,0 +1,159 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background: #000;
+    color: #fff;
+    overflow: hidden;
+    cursor: none;
+}
+
+.display-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.timer-display {
+    background: #1a1a1a;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #333;
+    min-height: 70px;
+}
+
+#countdown-timer {
+    font-size: 28px;
+    font-weight: bold;
+    color: #28a745;
+    font-family: 'Courier New', monospace;
+}
+
+#countdown-timer.warning {
+    color: #ffc107;
+}
+
+#countdown-timer.danger {
+    color: #dc3545;
+}
+
+#elapsed-time {
+    font-size: 20px;
+    color: #ccc;
+    font-family: 'Courier New', monospace;
+}
+
+.text-area {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    background: #000;
+}
+
+#prompter-text {
+    padding: 40px;
+    font-size: 48px;
+    line-height: 1.6;
+    font-weight: 300;
+    text-align: center;
+    position: absolute;
+    width: 100%;
+    transition: transform 0.1s linear;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#prompter-text p {
+    margin-bottom: 40px;
+}
+
+.connection-status {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    z-index: 1000;
+}
+
+.status-indicator {
+    font-size: 20px;
+    margin-right: 8px;
+}
+
+.status-indicator.connected {
+    color: #28a745;
+}
+
+.status-indicator.disconnected {
+    color: #dc3545;
+}
+
+.status-indicator.connecting {
+    color: #ffc107;
+}
+
+.status-text {
+    font-weight: bold;
+}
+
+/* Full screen mode adjustments */
+.fullscreen {
+    cursor: none;
+}
+
+.fullscreen .connection-status {
+    opacity: 0.3;
+    transition: opacity 0.3s;
+}
+
+.fullscreen .connection-status:hover {
+    opacity: 1;
+}
+
+/* Large text mode for better readability */
+.large-text #prompter-text {
+    font-size: 64px;
+}
+
+.medium-text #prompter-text {
+    font-size: 48px;
+}
+
+.small-text #prompter-text {
+    font-size: 32px;
+}
+
+/* Mirror mode for using with teleprompter hardware */
+.mirror-mode {
+    transform: scaleX(-1);
+}
+
+@media (max-width: 768px) {
+    #prompter-text {
+        font-size: 32px;
+        padding: 20px;
+    }
+    
+    .timer-display {
+        padding: 10px 15px;
+    }
+    
+    #countdown-timer {
+        font-size: 24px;
+    }
+    
+    #elapsed-time {
+        font-size: 18px;
+    }
+}

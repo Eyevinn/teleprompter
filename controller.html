@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teleprompter Controller</title>
+    <link rel="stylesheet" href="controller.css">
+</head>
+<body>
+    <div class="controller-container">
+        <header class="controller-header">
+            <h1>Teleprompter Controller</h1>
+            <div class="connection-info">
+                <div class="connection-status" id="connection-status">
+                    <span class="status-indicator disconnected">●</span>
+                    <span class="status-text">Disconnected</span>
+                </div>
+                <div class="display-url">
+                    <label>Display URL:</label>
+                    <span id="display-url">Open display.html</span>
+                    <button id="copy-url">Copy</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="controller-content">
+            <div class="controls-section">
+                <div class="control-group">
+                    <label for="file-upload">Upload Manuscript:</label>
+                    <input type="file" id="file-upload" accept=".txt,.docx,.pdf">
+                    <button id="clear-text">Clear</button>
+                </div>
+                
+                <div class="control-group">
+                    <label for="speed-control">Speed (words/min):</label>
+                    <input type="range" id="speed-control" min="60" max="300" value="150">
+                    <span id="speed-display">150</span>
+                </div>
+                
+                <div class="control-group">
+                    <label for="segment-length">Segment Length (minutes):</label>
+                    <input type="number" id="segment-length" min="1" max="60" value="10">
+                    <div class="duration-info">
+                        <div class="info-row">
+                            <span>Word count: <span id="word-count">0</span></span>
+                        </div>
+                        <div class="info-row">
+                            <span>Expected duration: <span id="expected-duration">0:00</span></span>
+                        </div>
+                        <div class="info-row duration-diff" id="duration-diff">
+                            <span>Difference: <span id="diff-value">0:00</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label for="font-size">Font Size:</label>
+                    <input type="range" id="font-size" min="16" max="72" value="48">
+                    <span id="font-size-display">48px</span>
+                </div>
+                
+                <div class="control-group">
+                    <label>Display Options:</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="mirror-mode">
+                            Mirror Mode
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="hide-timer">
+                            Hide Timer
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-preview">
+                <h3>Text Preview</h3>
+                <div class="preview-area">
+                    <div id="text-preview" contenteditable="true">
+                        <p>Welcome to the Teleprompter Controller!</p>
+                        <p>Upload your manuscript or edit this text directly.</p>
+                        <p>The changes will be synchronized with the display in real-time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="playback-controls">
+                <button id="start-btn" class="control-btn start">
+                    <span class="btn-icon">▶</span>
+                    Start
+                </button>
+                <button id="pause-btn" class="control-btn pause" disabled>
+                    <span class="btn-icon">⏸</span>
+                    Pause
+                </button>
+                <button id="reset-btn" class="control-btn reset">
+                    <span class="btn-icon">⏹</span>
+                    Reset
+                </button>
+            </div>
+            
+            <div class="timer-info">
+                <div class="timer-display">
+                    <div class="timer-item">
+                        <label>Segment Time:</label>
+                        <span id="segment-timer">10:00</span>
+                    </div>
+                    <div class="timer-item">
+                        <label>Elapsed:</label>
+                        <span id="elapsed-timer">00:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+    <script src="controller.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teleprompter Display</title>
+    <link rel="stylesheet" href="display.css">
+</head>
+<body>
+    <div class="display-container">
+        <div class="timer-display">
+            <div id="countdown-timer">10:00</div>
+            <div id="elapsed-time">00:00</div>
+        </div>
+        
+        <div class="text-area">
+            <div id="prompter-text">
+                <p>Waiting for controller connection...</p>
+                <p>Open the controller page to load your manuscript and begin prompting.</p>
+            </div>
+        </div>
+        
+        <div class="connection-status" id="connection-status">
+            <span class="status-indicator disconnected">●</span>
+            <span class="status-text">Disconnected</span>
+        </div>
+    </div>
+    
+    <script src="display.js"></script>
+</body>
+</html>
