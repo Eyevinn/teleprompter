@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teleprompter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="controls-panel">
+            <div class="control-group">
+                <label for="file-upload">Upload Manuscript:</label>
+                <input type="file" id="file-upload" accept=".txt,.docx,.pdf">
+                <button id="clear-text">Clear</button>
+            </div>
+            
+            <div class="control-group">
+                <label for="speed-control">Speed (words/min):</label>
+                <input type="range" id="speed-control" min="60" max="300" value="150">
+                <span id="speed-display">150</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="segment-length">Segment Length (minutes):</label>
+                <input type="number" id="segment-length" min="1" max="60" value="10">
+                <div class="duration-info">
+                    <div class="info-row">
+                        <span>Word count: <span id="word-count">0</span></span>
+                    </div>
+                    <div class="info-row">
+                        <span>Expected duration: <span id="expected-duration">0:00</span></span>
+                    </div>
+                    <div class="info-row duration-diff" id="duration-diff">
+                        <span>Difference: <span id="diff-value">0:00</span></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="font-size">Font Size:</label>
+                <input type="range" id="font-size" min="16" max="72" value="32">
+                <span id="font-size-display">32px</span>
+            </div>
+            
+            <div class="control-buttons">
+                <button id="start-btn">Start</button>
+                <button id="pause-btn" disabled>Pause</button>
+                <button id="reset-btn">Reset</button>
+            </div>
+        </div>
+        
+        <div class="prompter-area">
+            <div class="timer-display">
+                <div id="countdown-timer">10:00</div>
+                <div id="elapsed-time">00:00</div>
+            </div>
+            
+            <div class="text-area">
+                <div id="prompter-text">
+                    <p>Welcome to the Teleprompter!</p>
+                    <p>Upload your manuscript using the file upload button above, or paste your text directly here.</p>
+                    <p>Configure your reading speed and segment length, then click Start to begin prompting.</p>
+                    <p>The text will scroll automatically at your configured speed, and you'll see a countdown timer showing remaining time for this segment.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
