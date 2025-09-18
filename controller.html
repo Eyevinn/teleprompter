@@ -104,6 +104,17 @@
                 </div>
                 
                 <div class="control-group">
+                    <label for="scheduled-start">Scheduled Start Time:</label>
+                    <div class="scheduled-time-group">
+                        <input type="datetime-local" id="scheduled-start" step="1">
+                        <button id="clear-schedule" class="control-btn">Clear</button>
+                    </div>
+                    <div class="schedule-info" id="schedule-info">
+                        <span>No scheduled start time set</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
                     <label>Display Options:</label>
                     <div class="checkbox-group">
                         <label class="checkbox-label">

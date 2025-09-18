@@ -73,6 +73,48 @@ body {
     margin-bottom: 40px;
 }
 
+.scheduled-countdown {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 40px 60px;
+    border-radius: 20px;
+    border: 3px solid #ffc107;
+    display: none;
+    z-index: 100;
+}
+
+.scheduled-countdown.active {
+    display: block;
+}
+
+.countdown-label {
+    font-size: 24px;
+    color: #ffc107;
+    margin-bottom: 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.countdown-time {
+    font-size: 72px;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.countdown-target {
+    font-size: 18px;
+    color: #ccc;
+    font-family: 'Courier New', monospace;
+}
+
 .on-air-indicator {
     position: fixed;
     bottom: 20px;

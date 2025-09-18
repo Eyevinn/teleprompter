@@ -33,6 +33,9 @@ class TeleprompterController {
         this.mirrorModeCheckbox = document.getElementById('mirror-mode');
         this.hideTimerCheckbox = document.getElementById('hide-timer');
         this.onAirModeCheckbox = document.getElementById('on-air-mode');
+        this.scheduledStartInput = document.getElementById('scheduled-start');
+        this.clearScheduleBtn = document.getElementById('clear-schedule');
+        this.scheduleInfo = document.getElementById('schedule-info');
         this.startBtn = document.getElementById('start-btn');
         this.pauseBtn = document.getElementById('pause-btn');
         this.resetBtn = document.getElementById('reset-btn');
@@ -68,6 +71,8 @@ class TeleprompterController {
         this.mirrorModeCheckbox.addEventListener('change', (e) => this.updateMirrorMode(e.target.checked));
         this.hideTimerCheckbox.addEventListener('change', (e) => this.updateHideTimer(e.target.checked));
         this.onAirModeCheckbox.addEventListener('change', (e) => this.updateOnAir(e.target.checked));
+        this.scheduledStartInput.addEventListener('change', () => this.updateScheduledStart());
+        this.clearScheduleBtn.addEventListener('click', () => this.clearScheduledStart());
         this.startBtn.addEventListener('click', () => this.start());
         this.pauseBtn.addEventListener('click', () => this.pause());
         this.resetBtn.addEventListener('click', () => this.reset());
@@ -171,6 +176,11 @@ class TeleprompterController {
         this.sendMessage({ type: 'setMirrorMode', enabled: this.mirrorModeCheckbox.checked });
         this.sendMessage({ type: 'setHideTimer', enabled: this.hideTimerCheckbox.checked });
         this.sendMessage({ type: 'setOnAir', enabled: this.onAirModeCheckbox.checked });
+        
+        // Send scheduled start if set
+        if (this.scheduledStartInput.value) {
+            this.updateScheduledStart();
+        }
     }
     
     handleMessage(data) {
@@ -326,6 +336,34 @@ class TeleprompterController {
     
     updateOnAir(enabled) {
         this.sendMessage({ type: 'setOnAir', enabled: enabled });
+    }
+    
+    updateScheduledStart() {
+        const scheduledTime = this.scheduledStartInput.value;
+        if (scheduledTime) {
+            const scheduledDate = new Date(scheduledTime);
+            const now = new Date();
+            
+            if (scheduledDate <= now) {
+                alert('Scheduled time must be in the future');
+                this.scheduledStartInput.value = '';
+                return;
+            }
+            
+            this.scheduleInfo.innerHTML = `<span>Scheduled for: ${scheduledDate.toLocaleString()}</span>`;
+            this.sendMessage({ 
+                type: 'setScheduledStart', 
+                scheduledTime: scheduledDate.getTime() 
+            });
+        } else {
+            this.clearScheduledStart();
+        }
+    }
+    
+    clearScheduledStart() {
+        this.scheduledStartInput.value = '';
+        this.scheduleInfo.innerHTML = '<span>No scheduled start time set</span>';
+        this.sendMessage({ type: 'clearScheduledStart' });
     }
     
     start() {

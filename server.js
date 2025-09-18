@@ -78,7 +78,8 @@ let currentState = {
     pausedTime: 0,
     mirrorMode: false,
     hideTimer: false,
-    onAir: false
+    onAir: false,
+    scheduledStartTime: null
 };
 
 wss.on('connection', (ws, req) => {
@@ -135,10 +136,21 @@ wss.on('connection', (ws, req) => {
                     broadcastToDisplays({ type: 'setOnAir', enabled: data.enabled });
                     break;
                     
+                case 'setScheduledStart':
+                    currentState.scheduledStartTime = data.scheduledTime;
+                    broadcastToDisplays({ type: 'setScheduledStart', scheduledTime: data.scheduledTime });
+                    break;
+                    
+                case 'clearScheduledStart':
+                    currentState.scheduledStartTime = null;
+                    broadcastToDisplays({ type: 'clearScheduledStart' });
+                    break;
+                    
                 case 'start':
                     currentState.isPlaying = true;
                     currentState.isPaused = false;
                     currentState.onAir = true; // Automatically turn on air indicator
+                    currentState.scheduledStartTime = null; // Clear scheduled start
                     currentState.startTime = Date.now() - (currentState.pausedTime || 0);
                     broadcastToDisplays({ 
                         type: 'start', 
@@ -147,6 +159,8 @@ wss.on('connection', (ws, req) => {
                     });
                     // Send on air update to displays
                     broadcastToDisplays({ type: 'setOnAir', enabled: true });
+                    // Clear scheduled start on displays
+                    broadcastToDisplays({ type: 'clearScheduledStart' });
                     break;
                     
                 case 'pause':

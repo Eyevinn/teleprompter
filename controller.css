@@ -260,6 +260,27 @@ body {
     margin: 0 4px;
 }
 
+.scheduled-time-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.scheduled-time-group input[type="datetime-local"] {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.schedule-info {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+}
+
 .checkbox-group {
     display: flex;
     flex-direction: column;

@@ -11,6 +11,8 @@ class TeleprompterDisplay {
         this.fontSize = 48;
         this.animationId = null;
         this.timerInterval = null;
+        this.scheduledStartTime = null;
+        this.scheduledCountdownInterval = null;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
         this.reconnectDelay = 1000;
@@ -31,6 +33,9 @@ class TeleprompterDisplay {
         this.statusIndicator = this.connectionStatus.querySelector('.status-indicator');
         this.statusText = this.connectionStatus.querySelector('.status-text');
         this.onAirIndicator = document.getElementById('on-air-indicator');
+        this.scheduledCountdown = document.getElementById('scheduled-countdown');
+        this.countdownTime = document.getElementById('countdown-time');
+        this.countdownTarget = document.getElementById('countdown-target');
     }
     
     connectWebSocket() {
@@ -138,6 +143,14 @@ class TeleprompterDisplay {
                 this.setOnAir(data.enabled);
                 break;
                 
+            case 'setScheduledStart':
+                this.setScheduledStart(data.scheduledTime);
+                break;
+                
+            case 'clearScheduledStart':
+                this.clearScheduledStart();
+                break;
+                
             case 'start':
                 this.start(data.startTime, data.pausedTime);
                 break;
@@ -174,6 +187,12 @@ class TeleprompterDisplay {
         this.setMirrorMode(state.mirrorMode);
         this.setHideTimer(state.hideTimer);
         this.setOnAir(state.onAir);
+        
+        if (state.scheduledStartTime) {
+            this.setScheduledStart(state.scheduledStartTime);
+        } else {
+            this.clearScheduledStart();
+        }
         
         if (state.isPlaying) {
             this.start(state.startTime, state.pausedTime);
@@ -219,6 +238,57 @@ class TeleprompterDisplay {
         } else {
             this.onAirIndicator.classList.remove('active');
         }
+    }
+    
+    setScheduledStart(scheduledTime) {
+        this.scheduledStartTime = scheduledTime;
+        const targetDate = new Date(scheduledTime);
+        this.countdownTarget.textContent = `Starting at: ${targetDate.toLocaleTimeString()}`;
+        
+        this.scheduledCountdown.classList.add('active');
+        this.startScheduledCountdown();
+    }
+    
+    clearScheduledStart() {
+        this.scheduledStartTime = null;
+        this.scheduledCountdown.classList.remove('active');
+        this.stopScheduledCountdown();
+    }
+    
+    startScheduledCountdown() {
+        this.stopScheduledCountdown(); // Clear any existing interval
+        
+        this.scheduledCountdownInterval = setInterval(() => {
+            const now = Date.now();
+            const timeRemaining = this.scheduledStartTime - now;
+            
+            if (timeRemaining <= 0) {
+                // Time's up - start the prompter automatically
+                this.clearScheduledStart();
+                this.autoStart();
+                return;
+            }
+            
+            // Update countdown display
+            const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+            const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+            
+            this.countdownTime.textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }, 1000);
+    }
+    
+    stopScheduledCountdown() {
+        if (this.scheduledCountdownInterval) {
+            clearInterval(this.scheduledCountdownInterval);
+            this.scheduledCountdownInterval = null;
+        }
+    }
+    
+    autoStart() {
+        // Simulate receiving a start message from the server
+        this.start(Date.now(), 0);
     }
     
     start(startTime, pausedTime) {
