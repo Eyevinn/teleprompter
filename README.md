@@ -1,6 +1,11 @@
 # Open Teleprompter
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Slack](http://slack.streamingtech.se/badge.svg)](http://slack.streamingtech.se)
+
 A professional open-source web-based teleprompter application with controller-display separation for presentations, video recording, and public speaking.
+
+Open Teleprompter provides a complete solution for professional teleprompter needs, featuring real-time synchronization between controller and display interfaces, manuscript formatting, scheduled broadcasts, and Docker deployment support.
 
 ## Features
 
@@ -121,6 +126,39 @@ open-teleprompter/
 - Safari
 - Edge
 
+## Contributing
+
+We welcome contributions to Open Teleprompter! Please see our [contribution guidelines](CONTRIBUTING.md) for more information.
+
+## Support
+
+Join our [community on Slack](http://slack.streamingtech.se) where you can post any questions regarding any of our open source projects. Eyevinn's consulting business can also offer you:
+
+- Further development of this component
+- Customization and integration of this component into your platform
+- Support and maintenance agreement
+- Training
+
+Contact [sales@eyevinn.se](mailto:sales@eyevinn.se) if you are interested.
+
+## About Eyevinn Technology
+
+[Eyevinn Technology](https://www.eyevinntechnology.se) is an independent consultant firm specialized in video and streaming. Independent in a way that we are not commercially tied to any platform or technology vendor. As our way to innovate and push the industry forward we develop proof-of-concepts and tools. The things we learn and the code we write we share with the industry in [blogs](https://dev.to/video) and by open sourcing the code we have written.
+
+Want to know more about Eyevinn and how it is to work here. Contact us at [work@eyevinn.se](mailto:work@eyevinn.se)!
+
 ## License
 
-MIT License
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Copyright 2025 Eyevinn Technology AB

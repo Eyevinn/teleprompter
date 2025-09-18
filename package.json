@@ -13,10 +13,23 @@
     "presentation",
     "websocket",
     "controller",
-    "display"
+    "display",
+    "streaming",
+    "broadcast",
+    "video-production",
+    "live-streaming",
+    "eyevinn"
   ],
-  "author": "",
-  "license": "MIT",
+  "author": "Eyevinn Technology AB",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/Eyevinn/open-teleprompter#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Eyevinn/open-teleprompter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Eyevinn/open-teleprompter/issues"
+  },
   "dependencies": {
     "ws": "^8.16.0"
   },
