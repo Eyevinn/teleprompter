@@ -3,8 +3,7 @@ const http = require('http');
 const path = require('path');
 const fs = require('fs');
 
-const PORT = 8080;
-const WS_PORT = 8081;
+const PORT = process.env.PORT || 8080;
 
 // Create HTTP server for serving static files
 const server = http.createServer((req, res) => {
@@ -54,8 +53,8 @@ const server = http.createServer((req, res) => {
     });
 });
 
-// Create WebSocket server
-const wss = new WebSocket.Server({ port: WS_PORT });
+// Create WebSocket server using the same HTTP server
+const wss = new WebSocket.Server({ server });
 
 // Store connected clients
 const clients = {
@@ -266,12 +265,10 @@ function broadcastConnectionCount() {
 // Start HTTP server
 server.listen(PORT, () => {
     console.log(`HTTP Server running at http://localhost:${PORT}`);
+    console.log(`WebSocket Server running on the same port ${PORT}`);
     console.log(`Controller: http://localhost:${PORT}/controller.html`);
     console.log(`Display: http://localhost:${PORT}/display.html`);
 });
-
-// Log WebSocket server start
-console.log(`WebSocket Server running on port ${WS_PORT}`);
 
 // Graceful shutdown
 process.on('SIGINT', () => {

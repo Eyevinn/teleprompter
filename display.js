@@ -41,7 +41,11 @@ class TeleprompterDisplay {
     connectWebSocket() {
         try {
             this.updateConnectionStatus('connecting', 'Connecting...');
-            this.ws = new WebSocket('ws://localhost:8081');
+            // Construct WebSocket URL dynamically based on current location
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsPort = window.location.port || (window.location.protocol === 'https:' ? 443 : 80);
+            const wsUrl = `${wsProtocol}//${window.location.hostname}:${wsPort}`;
+            this.ws = new WebSocket(wsUrl);
             
             this.ws.onopen = () => {
                 console.log('Connected to WebSocket server');
