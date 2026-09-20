@@ -5,27 +5,31 @@
 }
 
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: #000;
     color: #fff;
     overflow: hidden;
-    cursor: none;
+    cursor: default;
+    -webkit-text-size-adjust: 100%;
 }
 
 .display-container {
     display: flex;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
+    min-height: 0;
 }
 
 .timer-display {
-    background: #1a1a1a;
-    padding: 15px 20px;
+    background: rgba(16, 16, 16, 0.96);
+    padding: max(10px, env(safe-area-inset-top)) 20px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px solid #333;
-    min-height: 70px;
+    border-bottom: 1px solid #2d2d2d;
+    min-height: 60px;
+    flex: 0 0 auto;
 }
 
 #countdown-timer {
@@ -56,38 +60,64 @@ body {
     background: #000;
 }
 
+.reading-guide-line {
+    position: absolute;
+    top: 50%;
+    left: max(28px, 8vw);
+    right: max(28px, 8vw);
+    height: 2px;
+    background: rgba(255, 209, 102, 0.78);
+    box-shadow: 0 0 16px rgba(255, 209, 102, 0.45);
+    display: none;
+    transform: translateY(-50%);
+    z-index: 20;
+    pointer-events: none;
+}
+
+.reading-guide-line.active {
+    display: block;
+}
+
 #prompter-text {
-    padding: 40px;
-    font-size: 48px;
-    line-height: 1.6;
+    padding: 40px max(32px, 7vw);
+    font-size: clamp(32px, 5.6vw, 72px);
+    line-height: 1.45;
     font-weight: 300;
     text-align: center;
     position: absolute;
+    left: 50%;
     width: 100%;
+    max-width: var(--prompter-text-width, 100vw);
     transition: transform 0.1s linear;
-    top: 80%;
-    transform: translateY(0%);
+    top: 50%;
+    transform: translateX(-50%) translateY(0%);
+    transform-origin: center center;
+    overflow-wrap: break-word;
+    word-break: normal;
 }
 
 #prompter-text p {
-    margin-bottom: 40px;
+    margin-bottom: 1.25em;
 }
 
-.scheduled-countdown {
+.scheduled-countdown,
+.preroll-countdown {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
     background: rgba(0, 0, 0, 0.8);
-    padding: 40px 60px;
-    border-radius: 20px;
+    width: min(680px, calc(100vw - 32px));
+    padding: 32px;
+    border-radius: 8px;
     border: 3px solid #ffc107;
     display: none;
     z-index: 100;
 }
 
-.scheduled-countdown.active {
+.scheduled-countdown.active,
+.preroll-countdown.active {
     display: block;
 }
 
@@ -162,13 +192,13 @@ body {
 
 .connection-status {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
     display: flex;
     align-items: center;
     background: rgba(0, 0, 0, 0.8);
     padding: 8px 16px;
-    border-radius: 20px;
+    border-radius: 6px;
     font-size: 14px;
     z-index: 1000;
 }
@@ -194,6 +224,41 @@ body {
     font-weight: bold;
 }
 
+.mobile-mode-btn {
+    position: fixed;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 1001;
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid #555;
+    border-radius: 6px;
+    background: rgba(20, 20, 20, 0.92);
+    color: #fff;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.mobile-mode-btn.active {
+    opacity: 0.35;
+}
+
+.mobile-mode-btn.active:hover,
+.mobile-mode-btn.active:focus-visible {
+    opacity: 1;
+}
+
+.keep-awake-video {
+    position: fixed;
+    width: 1px;
+    height: 1px;
+    right: 0;
+    bottom: 0;
+    opacity: 0.01;
+    pointer-events: none;
+}
+
 /* Full screen mode adjustments */
 .fullscreen {
     cursor: none;
@@ -204,7 +269,8 @@ body {
     transition: opacity 0.3s;
 }
 
-.fullscreen .connection-status:hover {
+.fullscreen .connection-status:hover,
+.fullscreen .connection-status:focus-visible {
     opacity: 1;
 }
 
@@ -222,25 +288,177 @@ body {
 }
 
 /* Mirror mode for using with teleprompter hardware */
-.mirror-mode {
+.mirror-mode #prompter-text {
     transform: scaleX(-1);
 }
 
+.mirror-mode .timer-display {
+    transform: scaleX(-1);
+}
+
+.mirror-mode .mobile-mode-btn {
+    transform: scaleX(-1);
+}
+
+.mirror-mode .connection-status {
+    transform: scaleX(-1);
+}
+
+.mirror-mode .on-air-indicator {
+    transform: scaleX(-1);
+}
+
+.mirror-mode .scheduled-countdown,
+.mirror-mode .preroll-countdown {
+    transform: translate(-50%, -50%) scaleX(-1);
+}
+
 @media (max-width: 768px) {
-    #prompter-text {
-        font-size: 32px;
-        padding: 20px;
+    body {
+        cursor: default;
     }
-    
+
+    .display-container {
+        height: 100svh;
+        height: 100dvh;
+    }
+
     .timer-display {
-        padding: 10px 15px;
+        min-height: 48px;
+        padding: max(8px, env(safe-area-inset-top)) 126px 8px 12px;
+    }
+
+    #prompter-text {
+        top: 50%;
+        padding: 18px 16px 96px;
+        font-size: clamp(28px, 8.4vw, 46px);
+        line-height: 1.36;
+    }
+
+    #prompter-text p {
+        margin-bottom: 0.9em;
     }
     
     #countdown-timer {
-        font-size: 24px;
+        font-size: clamp(18px, 6vw, 24px);
     }
     
     #elapsed-time {
-        font-size: 18px;
+        font-size: clamp(14px, 4.6vw, 18px);
+    }
+
+    .connection-status {
+        top: calc(52px + env(safe-area-inset-top));
+        right: 12px;
+        bottom: auto;
+        padding: 6px 10px;
+        font-size: 12px;
+        opacity: 0.72;
+    }
+
+    .status-indicator {
+        font-size: 14px;
+        margin-right: 6px;
+    }
+
+    .on-air-indicator {
+        left: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+    }
+
+    .mobile-mode-btn {
+        right: 12px;
+        top: max(8px, env(safe-area-inset-top));
+        bottom: auto;
+        min-height: 34px;
+        max-width: 108px;
+        padding: 7px 10px;
+        font-size: 12px;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .scheduled-countdown,
+    .preroll-countdown {
+        width: calc(100vw - 24px);
+        padding: 24px 16px;
+        border-radius: 8px;
+    }
+
+    .countdown-label {
+        font-size: 14px;
+        letter-spacing: 1px;
+    }
+
+    .countdown-time {
+        font-size: clamp(36px, 15vw, 58px);
+    }
+
+    .countdown-target {
+        font-size: 13px;
+    }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+    .display-container {
+        height: 100svh;
+        height: 100dvh;
+    }
+
+    .timer-display {
+        min-height: 44px;
+        padding: max(8px, env(safe-area-inset-top)) 126px 8px 12px;
+    }
+
+    #countdown-timer {
+        font-size: clamp(18px, 3.8vw, 24px);
+    }
+
+    #elapsed-time {
+        font-size: clamp(14px, 3vw, 18px);
+    }
+
+    #prompter-text {
+        top: 50%;
+        padding: 14px 18px 62px;
+        font-size: clamp(26px, 5.5vw, 42px);
+        line-height: 1.28;
+    }
+
+    .mobile-mode-btn {
+        right: 12px;
+        top: max(8px, env(safe-area-inset-top));
+        bottom: auto;
+        min-height: 34px;
+        max-width: 108px;
+        padding: 7px 10px;
+        font-size: 12px;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .connection-status {
+        top: calc(50px + env(safe-area-inset-top));
+        right: 12px;
+        bottom: auto;
+        padding: 6px 10px;
+        font-size: 12px;
+        opacity: 0.72;
+    }
+
+    .status-indicator {
+        font-size: 14px;
+        margin-right: 6px;
+    }
+
+    .on-air-indicator {
+        left: 12px;
+        bottom: calc(10px + env(safe-area-inset-bottom));
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
     }
 }

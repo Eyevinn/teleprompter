@@ -1,5 +1,15 @@
 class TeleprompterController {
     constructor() {
+        this.settingsStorageKey = 'openTeleprompter.settings';
+        this.presetsStorageKey = 'openTeleprompter.presets';
+        this.defaultSettings = {
+            speed: 55,
+            fontSize: 32,
+            textWidth: 20,
+            prerollSeconds: 0
+        };
+        const savedSettings = this.loadSavedSettings();
+
         this.ws = null;
         this.isPlaying = false;
         this.isPaused = false;
@@ -7,18 +17,72 @@ class TeleprompterController {
         this.startTime = null;
         this.pausedTime = 0;
         this.segmentDuration = 10 * 60 * 1000;
-        this.speed = 150;
-        this.fontSize = 48;
+        this.speed = savedSettings.speed;
+        this.fontSize = savedSettings.fontSize;
+        this.textWidth = savedSettings.textWidth;
+        this.prerollSeconds = savedSettings.prerollSeconds;
         this.timerInterval = null;
+        this.prerollTimeout = null;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
         this.reconnectDelay = 1000;
+        this.currentDisplayUrl = null;
+        this.hasSyncedInitialState = false;
         
         this.initializeElements();
+        this.applySavedSettingsToControls();
+        this.renderPresetOptions();
         this.bindEvents();
+        this.bindPlaybackHotkeys();
         this.connectWebSocket();
         this.updateDurationCalculations();
         this.updateDisplayUrl();
+    }
+
+    loadSavedSettings() {
+        try {
+            const savedSettings = JSON.parse(localStorage.getItem(this.settingsStorageKey) || '{}');
+            return {
+                speed: this.clampSetting(savedSettings.speed, 30, 300, this.defaultSettings.speed),
+                fontSize: this.clampSetting(savedSettings.fontSize, 16, 72, this.defaultSettings.fontSize),
+                textWidth: this.clampSetting(savedSettings.textWidth, 20, 100, this.defaultSettings.textWidth),
+                prerollSeconds: this.clampSetting(savedSettings.prerollSeconds, 0, 60, this.defaultSettings.prerollSeconds)
+            };
+        } catch (error) {
+            console.warn('Unable to load saved teleprompter settings:', error);
+            return { ...this.defaultSettings };
+        }
+    }
+
+    clampSetting(value, min, max, fallback) {
+        const parsedValue = parseInt(value);
+        if (Number.isNaN(parsedValue)) {
+            return fallback;
+        }
+        return Math.min(max, Math.max(min, parsedValue));
+    }
+
+    saveSettings() {
+        try {
+            localStorage.setItem(this.settingsStorageKey, JSON.stringify({
+                speed: this.speed,
+                fontSize: this.fontSize,
+                textWidth: this.textWidth,
+                prerollSeconds: this.prerollSeconds
+            }));
+        } catch (error) {
+            console.warn('Unable to save teleprompter settings:', error);
+        }
+    }
+
+    applySavedSettingsToControls() {
+        this.speedControl.value = this.speed;
+        this.speedDisplay.textContent = this.speed;
+        this.fontSizeControl.value = this.fontSize;
+        this.fontSizeDisplay.textContent = this.fontSize + 'px';
+        this.textWidthControl.value = this.textWidth;
+        this.textWidthDisplay.textContent = this.textWidth + '%';
+        this.prerollSecondsInput.value = this.prerollSeconds;
     }
     
     initializeElements() {
@@ -30,6 +94,15 @@ class TeleprompterController {
         this.segmentSecondsInput = document.getElementById('segment-seconds');
         this.fontSizeControl = document.getElementById('font-size');
         this.fontSizeDisplay = document.getElementById('font-size-display');
+        this.textWidthControl = document.getElementById('text-width');
+        this.textWidthDisplay = document.getElementById('text-width-display');
+        this.prerollSecondsInput = document.getElementById('preroll-seconds');
+        this.readingGuideCheckbox = document.getElementById('reading-guide');
+        this.presetNameInput = document.getElementById('preset-name');
+        this.presetSelect = document.getElementById('preset-select');
+        this.savePresetBtn = document.getElementById('save-preset');
+        this.loadPresetBtn = document.getElementById('load-preset');
+        this.deletePresetBtn = document.getElementById('delete-preset');
         this.mirrorModeCheckbox = document.getElementById('mirror-mode');
         this.hideTimerCheckbox = document.getElementById('hide-timer');
         this.onAirModeCheckbox = document.getElementById('on-air-mode');
@@ -38,10 +111,16 @@ class TeleprompterController {
         this.scheduleInfo = document.getElementById('schedule-info');
         this.startBtn = document.getElementById('start-btn');
         this.pauseBtn = document.getElementById('pause-btn');
+        this.rewind5Btn = document.getElementById('rewind-5-btn');
+        this.rewind10Btn = document.getElementById('rewind-10-btn');
+        this.forward5Btn = document.getElementById('forward-5-btn');
+        this.seekButtons = [this.rewind5Btn, this.rewind10Btn, this.forward5Btn];
         this.resetBtn = document.getElementById('reset-btn');
         this.textPreview = document.getElementById('text-preview');
         this.wordCount = document.getElementById('word-count');
+        this.wordCountLegacy = document.getElementById('word-count-legacy');
         this.expectedDuration = document.getElementById('expected-duration');
+        this.expectedDurationLegacy = document.getElementById('expected-duration-legacy');
         this.durationDiff = document.getElementById('duration-diff');
         this.diffValue = document.getElementById('diff-value');
         this.segmentTimer = document.getElementById('segment-timer');
@@ -59,6 +138,11 @@ class TeleprompterController {
         this.formatParagraphsCheckbox = document.getElementById('format-paragraphs');
         this.formatPunctuationCheckbox = document.getElementById('format-punctuation');
         this.formatNumbersCheckbox = document.getElementById('format-numbers');
+        this.boldTextBtn = document.getElementById('bold-text');
+        this.italicTextBtn = document.getElementById('italic-text');
+        this.highlightTextBtn = document.getElementById('highlight-text');
+        this.accentTextBtn = document.getElementById('accent-text');
+        this.clearFormattingBtn = document.getElementById('clear-formatting');
     }
     
     bindEvents() {
@@ -68,16 +152,30 @@ class TeleprompterController {
         this.segmentMinutesInput.addEventListener('input', () => this.updateSegmentLength());
         this.segmentSecondsInput.addEventListener('input', () => this.updateSegmentLength());
         this.fontSizeControl.addEventListener('input', (e) => this.updateFontSize(e.target.value));
+        this.textWidthControl.addEventListener('input', (e) => this.updateTextWidth(e.target.value));
+        this.prerollSecondsInput.addEventListener('input', (e) => this.updatePrerollSeconds(e.target.value));
+        this.readingGuideCheckbox.addEventListener('change', (e) => this.updateReadingGuide(e.target.checked));
         this.mirrorModeCheckbox.addEventListener('change', (e) => this.updateMirrorMode(e.target.checked));
         this.hideTimerCheckbox.addEventListener('change', (e) => this.updateHideTimer(e.target.checked));
         this.onAirModeCheckbox.addEventListener('change', (e) => this.updateOnAir(e.target.checked));
         this.scheduledStartInput.addEventListener('change', () => this.updateScheduledStart());
         this.clearScheduleBtn.addEventListener('click', () => this.clearScheduledStart());
+        this.savePresetBtn.addEventListener('click', () => this.savePreset());
+        this.loadPresetBtn.addEventListener('click', () => this.loadSelectedPreset());
+        this.deletePresetBtn.addEventListener('click', () => this.deleteSelectedPreset());
         this.startBtn.addEventListener('click', () => this.start());
         this.pauseBtn.addEventListener('click', () => this.pause());
+        this.rewind5Btn.addEventListener('click', () => this.seekPlayback(-5000));
+        this.rewind10Btn.addEventListener('click', () => this.seekPlayback(-10000));
+        this.forward5Btn.addEventListener('click', () => this.seekPlayback(5000));
         this.resetBtn.addEventListener('click', () => this.reset());
         this.copyUrlBtn.addEventListener('click', () => this.copyDisplayUrl());
         this.formatBtn.addEventListener('click', () => this.formatTextForTeleprompter());
+        this.boldTextBtn.addEventListener('click', () => this.applyEditorCommand('bold'));
+        this.italicTextBtn.addEventListener('click', () => this.applyEditorCommand('italic'));
+        this.highlightTextBtn.addEventListener('click', () => this.applyHighlight());
+        this.accentTextBtn.addEventListener('click', () => this.applyEditorCommand('foreColor', '#ffd166'));
+        this.clearFormattingBtn.addEventListener('click', () => this.clearEditorFormatting());
         
         // Initially show formatting options
         this.formattingOptions.style.display = 'block';
@@ -95,6 +193,136 @@ class TeleprompterController {
                 this.start();
             }
         });
+    }
+
+    bindPlaybackHotkeys() {
+        document.addEventListener('keydown', (event) => {
+            const target = event.target;
+            const isTyping = target && (
+                target.isContentEditable ||
+                ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)
+            );
+
+            if (isTyping || !event.altKey) {
+                return;
+            }
+
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                this.seekPlayback(event.shiftKey ? -10000 : -5000); // Alt+Left / Alt+Shift+Left
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                this.seekPlayback(5000); // Alt+Right
+            }
+        });
+    }
+
+    loadPresets() {
+        try {
+            return JSON.parse(localStorage.getItem(this.presetsStorageKey) || '{}');
+        } catch (error) {
+            console.warn('Unable to load teleprompter presets:', error);
+            return {};
+        }
+    }
+
+    savePresets(presets) {
+        try {
+            localStorage.setItem(this.presetsStorageKey, JSON.stringify(presets));
+        } catch (error) {
+            console.warn('Unable to save teleprompter presets:', error);
+        }
+    }
+
+    getCurrentSettingsPreset() {
+        return {
+            speed: this.speed,
+            fontSize: this.fontSize,
+            textWidth: this.textWidth,
+            prerollSeconds: this.prerollSeconds,
+            segmentMinutes: parseInt(this.segmentMinutesInput.value) || 0,
+            segmentSeconds: parseInt(this.segmentSecondsInput.value) || 0,
+            mirrorMode: this.mirrorModeCheckbox.checked,
+            hideTimer: this.hideTimerCheckbox.checked,
+            readingGuide: this.readingGuideCheckbox.checked
+        };
+    }
+
+    renderPresetOptions(selectedName = this.presetSelect.value) {
+        const presets = this.loadPresets();
+        const names = Object.keys(presets).sort((a, b) => a.localeCompare(b));
+
+        this.presetSelect.innerHTML = names.length
+            ? names.map(name => `<option value="${this.escapeHtml(name)}">${this.escapeHtml(name)}</option>`).join('')
+            : '<option value="">No presets saved</option>';
+        this.presetSelect.disabled = names.length === 0;
+        this.loadPresetBtn.disabled = names.length === 0;
+        this.deletePresetBtn.disabled = names.length === 0;
+
+        if (selectedName && presets[selectedName]) {
+            this.presetSelect.value = selectedName;
+        }
+    }
+
+    savePreset() {
+        const name = this.presetNameInput.value.trim();
+        if (!name) {
+            alert('Preset name is required');
+            return;
+        }
+
+        const presets = this.loadPresets();
+        presets[name] = this.getCurrentSettingsPreset();
+        this.savePresets(presets);
+        this.presetNameInput.value = '';
+        this.renderPresetOptions(name);
+    }
+
+    loadSelectedPreset() {
+        const presets = this.loadPresets();
+        const preset = presets[this.presetSelect.value];
+        if (!preset) {
+            return;
+        }
+
+        this.applyPreset(preset);
+    }
+
+    deleteSelectedPreset() {
+        const name = this.presetSelect.value;
+        if (!name) {
+            return;
+        }
+
+        const presets = this.loadPresets();
+        delete presets[name];
+        this.savePresets(presets);
+        this.renderPresetOptions();
+    }
+
+    applyPreset(preset) {
+        this.updateSpeed(preset.speed ?? this.speed);
+        this.updateFontSize(preset.fontSize ?? this.fontSize);
+        this.updateTextWidth(preset.textWidth ?? this.textWidth);
+        this.updatePrerollSeconds(preset.prerollSeconds ?? this.prerollSeconds);
+        this.segmentMinutesInput.value = this.clampSetting(preset.segmentMinutes, 0, 99, parseInt(this.segmentMinutesInput.value) || 0);
+        this.segmentSecondsInput.value = this.clampSetting(preset.segmentSeconds, 0, 59, parseInt(this.segmentSecondsInput.value) || 0);
+        this.mirrorModeCheckbox.checked = Boolean(preset.mirrorMode);
+        this.hideTimerCheckbox.checked = Boolean(preset.hideTimer);
+        this.readingGuideCheckbox.checked = Boolean(preset.readingGuide);
+        this.updateSegmentLength();
+        this.updateMirrorMode(this.mirrorModeCheckbox.checked);
+        this.updateHideTimer(this.hideTimerCheckbox.checked);
+        this.updateReadingGuide(this.readingGuideCheckbox.checked);
+    }
+
+    escapeHtml(value) {
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;');
     }
     
     connectWebSocket() {
@@ -117,8 +345,6 @@ class TeleprompterController {
                     role: 'controller'
                 }));
                 
-                // Send initial state
-                this.sendInitialState();
             };
             
             this.ws.onmessage = (event) => {
@@ -176,10 +402,12 @@ class TeleprompterController {
         // Send all current settings
         this.sendMessage({ type: 'setSpeed', value: this.speed });
         this.sendMessage({ type: 'setFontSize', value: this.fontSize });
+        this.sendMessage({ type: 'setTextWidth', value: this.textWidth });
         this.updateSegmentLength(); // This will send the segment length
         this.sendMessage({ type: 'setMirrorMode', enabled: this.mirrorModeCheckbox.checked });
         this.sendMessage({ type: 'setHideTimer', enabled: this.hideTimerCheckbox.checked });
         this.sendMessage({ type: 'setOnAir', enabled: this.onAirModeCheckbox.checked });
+        this.sendMessage({ type: 'setReadingGuide', enabled: this.readingGuideCheckbox.checked });
         
         // Send scheduled start if set
         if (this.scheduledStartInput.value) {
@@ -190,7 +418,7 @@ class TeleprompterController {
     handleMessage(data) {
         switch (data.type) {
             case 'stateSync':
-                // Server is syncing state - we're already the source of truth
+                this.handleStateSync(data.state);
                 break;
                 
             case 'pong':
@@ -204,6 +432,57 @@ class TeleprompterController {
             default:
                 console.log('Unknown message type:', data.type);
         }
+    }
+
+    handleStateSync(state) {
+        if (!state) {
+            return;
+        }
+
+        const serverHasSession = Boolean(state.text || state.isPlaying || state.isPaused || state.startTime);
+        if (!serverHasSession && !this.hasSyncedInitialState) {
+            this.hasSyncedInitialState = true;
+            this.sendInitialState();
+            return;
+        }
+
+        this.hasSyncedInitialState = true;
+
+        if (state.text) {
+            this.textPreview.innerHTML = state.text;
+            this.updateDurationCalculations();
+        }
+
+        this.speed = this.clampSetting(state.speed, 30, 300, this.speed);
+        this.fontSize = this.clampSetting(state.fontSize, 16, 72, this.fontSize);
+        this.textWidth = this.clampSetting(state.textWidth, 20, 100, this.textWidth);
+        this.applySavedSettingsToControls();
+
+        const segmentLength = Number(state.segmentLength) || Math.round(this.segmentDuration / 1000);
+        this.segmentDuration = segmentLength * 1000;
+        this.segmentMinutesInput.value = Math.floor(segmentLength / 60);
+        this.segmentSecondsInput.value = segmentLength % 60;
+
+        this.mirrorModeCheckbox.checked = Boolean(state.mirrorMode);
+        this.hideTimerCheckbox.checked = Boolean(state.hideTimer);
+        this.onAirModeCheckbox.checked = Boolean(state.onAir);
+        this.readingGuideCheckbox.checked = Boolean(state.readingGuide);
+
+        this.isPlaying = Boolean(state.isPlaying);
+        this.isPaused = Boolean(state.isPaused);
+        this.startTime = state.startTime || null;
+        this.pausedTime = state.pausedTime || 0;
+
+        this.startBtn.disabled = this.isPlaying;
+        this.pauseBtn.disabled = !this.isPlaying;
+        this.setSeekButtonsDisabled(!(this.isPlaying || this.isPaused));
+
+        if (this.isPlaying) {
+            this.startTimer();
+        } else {
+            this.stopTimer();
+        }
+        this.updateDisplay();
     }
     
     updateConnectionInfo(data) {
@@ -297,10 +576,31 @@ class TeleprompterController {
         this.reset();
         this.updateDurationCalculations();
     }
+
+    applyEditorCommand(command, value = null) {
+        this.textPreview.focus();
+        document.execCommand(command, false, value);
+        this.sendTextUpdate();
+        this.updateDurationCalculations();
+    }
+
+    applyHighlight() {
+        this.textPreview.focus();
+        document.execCommand('backColor', false, '#fff3a3');
+        document.execCommand('foreColor', false, '#000000');
+        this.sendTextUpdate();
+        this.updateDurationCalculations();
+    }
+
+    clearEditorFormatting() {
+        const plainText = this.textPreview.textContent || this.textPreview.innerText || '';
+        this.setPrompterTextDirectly(plainText);
+    }
     
     updateSpeed(value) {
         this.speed = parseInt(value);
         this.speedDisplay.textContent = this.speed;
+        this.saveSettings();
         this.sendMessage({ type: 'setSpeed', value: this.speed });
         this.updateDurationCalculations();
     }
@@ -327,7 +627,21 @@ class TeleprompterController {
     updateFontSize(value) {
         this.fontSize = parseInt(value);
         this.fontSizeDisplay.textContent = this.fontSize + 'px';
+        this.saveSettings();
         this.sendMessage({ type: 'setFontSize', value: this.fontSize });
+    }
+
+    updateTextWidth(value) {
+        this.textWidth = parseInt(value);
+        this.textWidthDisplay.textContent = this.textWidth + '%';
+        this.saveSettings();
+        this.sendMessage({ type: 'setTextWidth', value: this.textWidth });
+    }
+
+    updatePrerollSeconds(value) {
+        this.prerollSeconds = this.clampSetting(value, 0, 60, this.defaultSettings.prerollSeconds);
+        this.prerollSecondsInput.value = this.prerollSeconds;
+        this.saveSettings();
     }
     
     updateMirrorMode(enabled) {
@@ -340,6 +654,10 @@ class TeleprompterController {
     
     updateOnAir(enabled) {
         this.sendMessage({ type: 'setOnAir', enabled: enabled });
+    }
+
+    updateReadingGuide(enabled) {
+        this.sendMessage({ type: 'setReadingGuide', enabled: enabled });
     }
     
     updateScheduledStart() {
@@ -375,6 +693,30 @@ class TeleprompterController {
             this.resume();
             return;
         }
+
+        if (this.prerollSeconds > 0) {
+            this.startPreroll();
+            return;
+        }
+
+        this.beginPlayback();
+    }
+
+    startPreroll() {
+        this.startBtn.disabled = true;
+        this.pauseBtn.disabled = false;
+        this.setSeekButtonsDisabled(true);
+        this.sendMessage({ type: 'startPreroll', seconds: this.prerollSeconds });
+
+        clearTimeout(this.prerollTimeout);
+        this.prerollTimeout = setTimeout(() => {
+            this.beginPlayback(false);
+        }, this.prerollSeconds * 1000);
+    }
+
+    beginPlayback(sendStartMessage = true) {
+        clearTimeout(this.prerollTimeout);
+        this.prerollTimeout = null;
         
         this.isPlaying = true;
         this.isPaused = false;
@@ -385,18 +727,36 @@ class TeleprompterController {
         
         this.startBtn.disabled = true;
         this.pauseBtn.disabled = false;
+        this.setSeekButtonsDisabled(false);
         
-        this.sendMessage({ type: 'start' });
+        if (sendStartMessage) {
+            this.sendMessage({ type: 'start' });
+        }
         this.startTimer();
     }
     
     pause() {
+        if (this.prerollTimeout && !this.isPlaying) {
+            clearTimeout(this.prerollTimeout);
+            this.prerollTimeout = null;
+            this.isPaused = false;
+            this.pausedTime = 0;
+            this.startBtn.disabled = false;
+            this.pauseBtn.disabled = true;
+            this.setSeekButtonsDisabled(true);
+            this.sendMessage({ type: 'reset' });
+            this.stopTimer();
+            this.updateDisplay();
+            return;
+        }
+
         this.isPaused = true;
         this.isPlaying = false;
         this.pausedTime = Date.now() - this.startTime;
         
         this.startBtn.disabled = false;
         this.pauseBtn.disabled = true;
+        this.setSeekButtonsDisabled(false);
         
         this.sendMessage({ type: 'pause' });
         this.stopTimer();
@@ -409,6 +769,7 @@ class TeleprompterController {
         
         this.startBtn.disabled = true;
         this.pauseBtn.disabled = false;
+        this.setSeekButtonsDisabled(false);
         
         this.sendMessage({ type: 'start' });
         this.startTimer();
@@ -423,13 +784,45 @@ class TeleprompterController {
         
         this.startBtn.disabled = false;
         this.pauseBtn.disabled = true;
+        this.setSeekButtonsDisabled(true);
+        clearTimeout(this.prerollTimeout);
+        this.prerollTimeout = null;
         
         this.sendMessage({ type: 'reset' });
         this.stopTimer();
         this.updateDisplay();
     }
+
+    setSeekButtonsDisabled(disabled) {
+        this.seekButtons.forEach(button => {
+            button.disabled = disabled;
+        });
+    }
+
+    rewindTenSeconds() {
+        this.seekPlayback(-10000);
+    }
+
+    seekPlayback(milliseconds) {
+        if (!this.isPlaying && !this.isPaused) {
+            return;
+        }
+
+        const currentElapsed = this.startTime ? Date.now() - this.startTime : this.pausedTime;
+        const nextElapsed = Math.max(0, currentElapsed + milliseconds);
+
+        if (this.isPaused) {
+            this.pausedTime = nextElapsed;
+        } else {
+            this.startTime = Date.now() - nextElapsed;
+        }
+
+        this.sendMessage({ type: 'seek', milliseconds });
+        this.updateDisplay();
+    }
     
     startTimer() {
+        this.stopTimer();
         this.timerInterval = setInterval(() => {
             this.updateDisplay();
         }, 1000);
@@ -476,7 +869,10 @@ class TeleprompterController {
         const segmentDurationMs = this.segmentDuration;
         
         this.wordCount.textContent = wordCount.toLocaleString();
-        this.expectedDuration.textContent = this.formatDuration(expectedDurationMs);
+        this.wordCountLegacy.textContent = wordCount.toLocaleString();
+        const expectedDuration = this.formatDuration(expectedDurationMs);
+        this.expectedDuration.textContent = expectedDuration;
+        this.expectedDurationLegacy.textContent = expectedDuration;
         
         // Calculate and display difference
         const differenceMs = segmentDurationMs - expectedDurationMs;
@@ -525,19 +921,32 @@ class TeleprompterController {
         this.statusText.textContent = text;
     }
     
-    updateDisplayUrl() {
+    getBrowserDisplayUrl() {
         const protocol = window.location.protocol;
         const hostname = window.location.hostname;
         const port = window.location.port ? `:${window.location.port}` : '';
-        const displayUrl = `${protocol}//${hostname}${port}/display.html`;
+        return `${protocol}//${hostname}${port}/display`;
+    }
+
+    async updateDisplayUrl() {
+        let displayUrl = this.getBrowserDisplayUrl();
+
+        try {
+            const response = await fetch('/config.json');
+            if (response.ok) {
+                const config = await response.json();
+                displayUrl = config.displayUrl || displayUrl;
+            }
+        } catch (error) {
+            console.warn('Unable to load public display URL config:', error);
+        }
+
+        this.currentDisplayUrl = displayUrl;
         this.displayUrl.textContent = displayUrl;
     }
     
     copyDisplayUrl() {
-        const protocol = window.location.protocol;
-        const hostname = window.location.hostname;
-        const port = window.location.port ? `:${window.location.port}` : '';
-        const displayUrl = `${protocol}//${hostname}${port}/display.html`;
+        const displayUrl = this.currentDisplayUrl || this.getBrowserDisplayUrl();
         
         navigator.clipboard.writeText(displayUrl).then(() => {
             this.copyUrlBtn.textContent = 'Copied!';

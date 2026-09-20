@@ -1,0 +1,19 @@
+services:
+  teleprompter:
+    build: .
+    image: open-teleprompter:local
+    container_name: teleprompter
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      # For local LAN use, set PUBLIC_HOST to your server IP.
+      # For a domain behind HTTPS reverse proxy, use:
+      # PUBLIC_HOST: teleprompter.example.com
+      # PUBLIC_PROTOCOL: https
+      # PUBLIC_PORT: ""
+      PUBLIC_HOST: ${PUBLIC_HOST:-}
+      PUBLIC_PROTOCOL: ${PUBLIC_PROTOCOL:-http}
+      PUBLIC_PORT: ${PUBLIC_PORT:-8080}
+    ports:
+      - "${HOST_PORT:-8080}:8080"

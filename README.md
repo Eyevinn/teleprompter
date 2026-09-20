@@ -8,7 +8,9 @@ A professional open-source web-based teleprompter application with controller-di
 
 **✨ Available in Eyevinn Open Source Cloud** - Try Open Teleprompter instantly without installation at [app.osaas.io](https://app.osaas.io/browse/eyevinn-teleprompter)
 
-Open Teleprompter provides a complete solution for professional teleprompter needs, featuring real-time synchronization between controller and display interfaces, manuscript formatting, scheduled broadcasts, and Docker deployment support.
+Open Teleprompter provides a complete solution for professional teleprompter needs, featuring real-time synchronization between controller and display interfaces, manuscript formatting, mobile-friendly display controls, presets, and Docker deployment support.
+
+This fork keeps the original Eyevinn teleprompter foundation and adds a set of controller, display, mobile, and deployment improvements focused on personal recording workflows.
 
 ## Screenshots
 
@@ -24,21 +26,37 @@ The clean, distraction-free display optimized for teleprompter use:
 
 ## Features
 
+### Original Project Features
+
 - **Controller-Display Architecture**: Separate interfaces connected via WebSocket
 - **Manuscript Upload**: Support for text files (.txt) and Word documents (.docx)
-- **Manuscript Formatting**: Professional teleprompter formatting options
-- **Configurable Speed**: Adjustable reading speed from 60-300 words per minute
+- **Manuscript Formatting**: Teleprompter formatting options
+- **Configurable Speed**: Adjustable reading speed
 - **Segment Timing**: Set custom segment lengths with countdown timer
 - **Scheduled Start**: Set future start times with countdown display
 - **Duration Calculations**: Real-time calculation of expected reading time vs. segment length
 - **On-Air Indicator**: Visual indicator with automatic activation
-- **Professional Interface**: Dark theme optimized for teleprompter use
 - **Live Text Editing**: Edit text directly in the controller
 - **Auto-scrolling**: Smooth text scrolling based on reading speed
 - **Playback Controls**: Start, pause, and reset functionality
 - **Multiple Displays**: Support for multiple synchronized displays
 - **Mirror Mode**: For use with teleprompter hardware
 - **Fullscreen Support**: F11 or F key for fullscreen mode
+
+### Added In This Fork
+
+- **Focused Controller UI**: Script editor, reading setup, display options, advanced timing, and presets
+- **Rich Text Editing**: Bold, italic, highlight, accent color, and remove formatting controls
+- **Expanded Reading Setup**: Adjustable speed from 30-300 words per minute, font size, and centered text width
+- **Optional Reading Guide**: Horizontal guide line on the display
+- **Start Cooldown**: Countdown before playback starts
+- **Re-recording Controls**: Jump -5s, -10s, and +5s while recording
+- **Settings Presets**: Save and load preferred reading/display settings
+- **Mobile Display Mode**: Fullscreen/wake-lock helpers for phone display use
+- **Improved Mobile/Mirror Layout**: Display controls and indicators remain readable in mobile and mirror mode
+- **Accurate WPM Scrolling**: Scroll timing is based on word count and measured text travel distance
+- **Centered Text Width Control**: Limit and center the readable text column for camera-facing delivery
+- **Docker Compose Deployment**: `.env.example`, `docker-compose.yml`, public URL configuration, and `/healthz`
 
 ## Quick Start
 
@@ -55,8 +73,8 @@ The clean, distraction-free display optimized for teleprompter use:
    ```
 
 3. **Access the Application**:
-   - Controller: http://localhost:8080/controller.html
-   - Display: http://localhost:8080/display.html
+   - Controller: http://localhost:8080/controller
+   - Display: http://localhost:8080/display
 
 ### Using Docker
 
@@ -71,8 +89,45 @@ The clean, distraction-free display optimized for teleprompter use:
    ```
 
 3. **Access the Application**:
-   - Controller: http://localhost:8080/controller.html
-   - Display: http://localhost:8080/display.html
+   - Controller: http://localhost:8080/controller
+   - Display: http://localhost:8080/display
+
+### Using Docker Compose
+
+1. **Create your environment file**:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Edit `.env` for your server**:
+   ```bash
+   HOST_PORT=8080
+   PUBLIC_HOST=192.168.1.139
+   PUBLIC_PROTOCOL=http
+   PUBLIC_PORT=8080
+   ```
+
+   If you run it behind an HTTPS reverse proxy, use your domain and leave
+   `PUBLIC_PORT` empty:
+   ```bash
+   HOST_PORT=8080
+   PUBLIC_HOST=teleprompter.example.com
+   PUBLIC_PROTOCOL=https
+   PUBLIC_PORT=
+   ```
+
+3. **Start the service**:
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. **Access the Application**:
+   - Controller: http://localhost:8080/controller
+   - Display: http://localhost:8080/display
+
+If you use a reverse proxy such as Caddy, Traefik, Nginx Proxy Manager, or
+nginx, make sure WebSocket upgrades are enabled for the same host. The HTTP
+server and WebSocket server both use the same port.
 
 ### Custom Port Configuration
 
@@ -88,19 +143,17 @@ docker run -p 3000:3000 -e PORT=3000 open-teleprompter
 
 ## Usage
 
-1. **Open the Controller**: Navigate to `/controller.html` to configure and control the teleprompter
-2. **Open the Display**: Navigate to `/display.html` for the clean teleprompter display
+1. **Open the Controller**: Navigate to `/controller` to configure and control the teleprompter
+2. **Open the Display**: Navigate to `/display` for the clean teleprompter display
 3. **Load Content**: Upload a manuscript file or type/paste text directly in the controller
-4. **Configure Settings**:
-   - Set your reading speed (words per minute)
-   - Configure segment length (minutes and seconds)
-   - Set scheduled start time (optional)
-   - Adjust font size for optimal readability
-   - Enable mirror mode for teleprompter hardware
-   - Toggle on-air indicator
-5. **Monitor Duration**: Check the word count and expected duration vs. your segment length
-6. **Start Prompting**: Click Start to begin auto-scrolling text (on-air indicator activates automatically)
-7. **Control Playback**: Use Pause/Resume and Reset as needed
+4. **Format Content**: Use teleprompter formatting, rich text controls, or remove formatting when needed
+5. **Configure Reading Setup**:
+   - Set reading speed, font size, and text width
+   - Enable the optional reading guide line
+   - Enable mirror mode, hide timer, or on-air indicator
+6. **Start Prompting**: Set an optional cooldown and click Start
+7. **Control Playback**: Use Pause/Resume, Reset, -5s, -10s, and +5s as needed
+8. **Save Presets**: Store your preferred reading/display settings for later sessions
 
 ## File Structure
 
@@ -115,6 +168,8 @@ open-teleprompter/
 ├── display.css         # Display styling
 ├── display.js          # Display functionality
 ├── Dockerfile          # Docker configuration
+├── docker-compose.yml  # Docker Compose deployment
+├── .env.example        # Deployment environment example
 ├── .dockerignore       # Docker ignore rules
 ├── README.md           # This file
 └── .gitignore         # Git ignore rules
@@ -128,10 +183,15 @@ open-teleprompter/
 - **Mammoth.js**: Used for Word document parsing
 - **Responsive Design**: Works on desktop and mobile devices
 - **Docker Support**: Containerized deployment ready
+- **Health Check**: `/healthz` endpoint for container monitoring
 
 ## Environment Variables
 
 - `PORT`: Server port for both HTTP and WebSocket (default: 8080)
+- `PUBLIC_HOST`: Hostname or IP shown to controllers and displays
+- `PUBLIC_PROTOCOL`: Public protocol for generated URLs (`http` or `https`)
+- `PUBLIC_PORT`: Public port for generated URLs. Set to an empty value when
+  using the default HTTPS/HTTP port through a reverse proxy.
 - `NODE_ENV`: Node.js environment (default: production in Docker)
 
 ## Browser Compatibility

@@ -1,13 +1,62 @@
 const WebSocket = require('ws');
 const http = require('http');
+const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
 const PORT = process.env.PORT || 8080;
+const PUBLIC_PORT = process.env.PUBLIC_PORT;
+
+function getLocalNetworkHost() {
+    if (process.env.PUBLIC_HOST) {
+        return process.env.PUBLIC_HOST;
+    }
+
+    const interfaces = os.networkInterfaces();
+    for (const addresses of Object.values(interfaces)) {
+        for (const address of addresses || []) {
+            if (address.family === 'IPv4' && !address.internal) {
+                return address.address;
+            }
+        }
+    }
+
+    return 'localhost';
+}
+
+function buildPublicConfig() {
+    const protocol = process.env.PUBLIC_PROTOCOL || 'http';
+    const host = getLocalNetworkHost();
+    const port = typeof PUBLIC_PORT === 'string' ? PUBLIC_PORT : PORT;
+    const portSuffix = port ? `:${port}` : '';
+    const baseUrl = `${protocol}://${host}${portSuffix}`;
+
+    return {
+        baseUrl,
+        displayUrl: `${baseUrl}/display`
+    };
+}
 
 // Create HTTP server for serving static files
 const server = http.createServer((req, res) => {
-    let filePath = path.join(__dirname, req.url === '/' ? 'controller.html' : req.url);
+    if (req.url === '/healthz') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+        return;
+    }
+
+    if (req.url === '/config.json') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(buildPublicConfig()));
+        return;
+    }
+
+    const routes = {
+        '/': 'controller.html',
+        '/controller': 'controller.html',
+        '/display': 'display.html'
+    };
+    let filePath = path.join(__dirname, routes[req.url] || req.url);
     
     // Security check - prevent directory traversal
     if (!filePath.startsWith(__dirname)) {
@@ -65,8 +114,9 @@ const clients = {
 // Current state to sync new connections
 let currentState = {
     text: '',
-    speed: 150,
-    fontSize: 48,
+    speed: 55,
+    fontSize: 32,
+    textWidth: 20,
     segmentLength: 10 * 60, // 10 minutes in seconds
     segmentMinutes: 10,
     segmentSeconds: 0,
@@ -77,9 +127,55 @@ let currentState = {
     pausedTime: 0,
     mirrorMode: false,
     hideTimer: false,
+    readingGuide: false,
     onAir: false,
-    scheduledStartTime: null
+    scheduledStartTime: null,
+    prerollStartAt: null
 };
+
+let pendingStartTimeout = null;
+
+function cancelPendingStart() {
+    if (pendingStartTimeout) {
+        clearTimeout(pendingStartTimeout);
+        pendingStartTimeout = null;
+    }
+    currentState.prerollStartAt = null;
+}
+
+function getCurrentElapsedMs() {
+    if (currentState.isPlaying && currentState.startTime) {
+        return Math.max(0, Date.now() - currentState.startTime);
+    }
+
+    return Math.max(0, currentState.pausedTime || 0);
+}
+
+function getStateSnapshot() {
+    return {
+        ...currentState,
+        elapsedMs: getCurrentElapsedMs()
+    };
+}
+
+function beginPlayback() {
+    cancelPendingStart();
+    const elapsedMs = currentState.pausedTime || 0;
+    currentState.isPlaying = true;
+    currentState.isPaused = false;
+    currentState.onAir = true; // Automatically turn on air indicator
+    currentState.scheduledStartTime = null; // Clear scheduled start
+    currentState.startTime = Date.now() - (currentState.pausedTime || 0);
+
+    broadcastToDisplays({
+        type: 'start',
+        startTime: currentState.startTime,
+        pausedTime: currentState.pausedTime,
+        elapsedMs
+    });
+    broadcastToDisplays({ type: 'setOnAir', enabled: true });
+    broadcastToDisplays({ type: 'clearScheduledStart' });
+}
 
 wss.on('connection', (ws, req) => {
     console.log('New WebSocket connection');
@@ -107,6 +203,11 @@ wss.on('connection', (ws, req) => {
                     currentState.fontSize = data.value;
                     broadcastToDisplays({ type: 'setFontSize', value: data.value });
                     break;
+
+                case 'setTextWidth':
+                    currentState.textWidth = data.value;
+                    broadcastToDisplays({ type: 'setTextWidth', value: data.value });
+                    break;
                     
                 case 'setSegmentLength':
                     currentState.segmentLength = data.totalSeconds || data.value || 10 * 60; // fallback to 10 minutes
@@ -129,6 +230,11 @@ wss.on('connection', (ws, req) => {
                     currentState.hideTimer = data.enabled;
                     broadcastToDisplays({ type: 'setHideTimer', enabled: data.enabled });
                     break;
+
+                case 'setReadingGuide':
+                    currentState.readingGuide = data.enabled;
+                    broadcastToDisplays({ type: 'setReadingGuide', enabled: data.enabled });
+                    break;
                     
                 case 'setOnAir':
                     currentState.onAir = data.enabled;
@@ -144,28 +250,30 @@ wss.on('connection', (ws, req) => {
                     currentState.scheduledStartTime = null;
                     broadcastToDisplays({ type: 'clearScheduledStart' });
                     break;
+
+                case 'startPreroll': {
+                    cancelPendingStart();
+                    const seconds = Math.min(60, Math.max(0, Number(data.seconds) || 0));
+                    const startAt = Date.now() + seconds * 1000;
+                    currentState.isPlaying = false;
+                    currentState.isPaused = false;
+                    currentState.prerollStartAt = startAt;
+                    currentState.pausedTime = 0;
+                    currentState.startTime = null;
+                    broadcastToDisplays({ type: 'startPreroll', startAt, seconds });
+                    pendingStartTimeout = setTimeout(beginPlayback, seconds * 1000);
+                    break;
+                }
                     
                 case 'start':
-                    currentState.isPlaying = true;
-                    currentState.isPaused = false;
-                    currentState.onAir = true; // Automatically turn on air indicator
-                    currentState.scheduledStartTime = null; // Clear scheduled start
-                    currentState.startTime = Date.now() - (currentState.pausedTime || 0);
-                    broadcastToDisplays({ 
-                        type: 'start', 
-                        startTime: currentState.startTime,
-                        pausedTime: currentState.pausedTime
-                    });
-                    // Send on air update to displays
-                    broadcastToDisplays({ type: 'setOnAir', enabled: true });
-                    // Clear scheduled start on displays
-                    broadcastToDisplays({ type: 'clearScheduledStart' });
+                    beginPlayback();
                     break;
                     
                 case 'pause':
+                    cancelPendingStart();
                     currentState.isPlaying = false;
                     currentState.isPaused = true;
-                    currentState.pausedTime = Date.now() - currentState.startTime;
+                    currentState.pausedTime = currentState.startTime ? Date.now() - currentState.startTime : 0;
                     broadcastToDisplays({ 
                         type: 'pause',
                         pausedTime: currentState.pausedTime
@@ -173,6 +281,7 @@ wss.on('connection', (ws, req) => {
                     break;
                     
                 case 'reset':
+                    cancelPendingStart();
                     currentState.isPlaying = false;
                     currentState.isPaused = false;
                     currentState.currentPosition = 0;
@@ -180,6 +289,58 @@ wss.on('connection', (ws, req) => {
                     currentState.pausedTime = 0;
                     broadcastToDisplays({ type: 'reset' });
                     break;
+
+                case 'rewind': {
+                    const milliseconds = Math.min(60_000, Math.max(0, Number(data.milliseconds) || 10_000));
+                    let elapsedMs = 0;
+
+                    if (currentState.isPlaying && currentState.startTime) {
+                        elapsedMs = Math.max(0, Date.now() - currentState.startTime - milliseconds);
+                        currentState.startTime = Date.now() - elapsedMs;
+                    } else if (currentState.isPaused) {
+                        elapsedMs = Math.max(0, currentState.pausedTime - milliseconds);
+                        currentState.pausedTime = elapsedMs;
+                    } else {
+                        break;
+                    }
+
+                    broadcastToDisplays({
+                        type: 'rewind',
+                        startTime: currentState.startTime,
+                        pausedTime: currentState.pausedTime,
+                        elapsedMs,
+                        isPlaying: currentState.isPlaying,
+                        isPaused: currentState.isPaused
+                    });
+                    break;
+                }
+
+                case 'seek': {
+                    const milliseconds = Math.min(60_000, Math.max(-60_000, Number(data.milliseconds) || 0));
+                    let elapsedMs = 0;
+
+                    if (currentState.isPlaying && currentState.startTime) {
+                        elapsedMs = Math.max(0, Date.now() - currentState.startTime);
+                        elapsedMs = Math.max(0, elapsedMs + milliseconds);
+                        currentState.startTime = Date.now() - elapsedMs;
+                    } else if (currentState.isPaused) {
+                        elapsedMs = Math.max(0, currentState.pausedTime);
+                        elapsedMs = Math.max(0, elapsedMs + milliseconds);
+                        currentState.pausedTime = elapsedMs;
+                    } else {
+                        break;
+                    }
+
+                    broadcastToDisplays({
+                        type: 'seek',
+                        startTime: currentState.startTime,
+                        pausedTime: currentState.pausedTime,
+                        elapsedMs,
+                        isPlaying: currentState.isPlaying,
+                        isPaused: currentState.isPaused
+                    });
+                    break;
+                }
                     
                 case 'ping':
                     ws.send(JSON.stringify({ type: 'pong' }));
@@ -213,7 +374,7 @@ function handleRegistration(ws, data) {
         // Send current state to new controller
         ws.send(JSON.stringify({
             type: 'stateSync',
-            state: currentState
+            state: getStateSnapshot()
         }));
         
     } else if (data.role === 'display') {
@@ -223,7 +384,7 @@ function handleRegistration(ws, data) {
         // Send current state to new display
         ws.send(JSON.stringify({
             type: 'stateSync',
-            state: currentState
+            state: getStateSnapshot()
         }));
     }
     
@@ -262,23 +423,27 @@ function broadcastConnectionCount() {
     });
 }
 
-// Start HTTP server
-server.listen(PORT, () => {
-    console.log(`HTTP Server running at http://localhost:${PORT}`);
-    console.log(`WebSocket Server running on the same port ${PORT}`);
-    console.log(`Controller: http://localhost:${PORT}/controller.html`);
-    console.log(`Display: http://localhost:${PORT}/display.html`);
-});
+if (require.main === module) {
+    const publicConfig = buildPublicConfig();
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-    console.log('Shutting down servers...');
-    wss.close(() => {
-        server.close(() => {
-            console.log('Servers closed');
-            process.exit(0);
+    // Start HTTP server
+    server.listen(PORT, () => {
+        console.log(`HTTP Server running at http://localhost:${PORT}`);
+        console.log(`WebSocket Server running on the same port ${PORT}`);
+        console.log(`Controller: ${publicConfig.baseUrl}/controller`);
+        console.log(`Display: ${publicConfig.displayUrl}`);
+    });
+
+    // Graceful shutdown
+    process.on('SIGINT', () => {
+        console.log('Shutting down servers...');
+        wss.close(() => {
+            server.close(() => {
+                console.log('Servers closed');
+                process.exit(0);
+            });
         });
     });
-});
+}
 
-module.exports = { server, wss };
+module.exports = { server, wss, buildPublicConfig, getLocalNetworkHost };

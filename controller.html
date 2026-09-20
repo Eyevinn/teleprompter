@@ -17,20 +17,21 @@
                 </div>
                 <div class="display-url">
                     <label>Display URL:</label>
-                    <span id="display-url">Open display.html</span>
+                    <span id="display-url">Open display</span>
                     <button id="copy-url">Copy</button>
                 </div>
             </div>
         </header>
 
         <div class="controller-content">
-            <div class="controls-section">
-                <div class="control-group">
+            <div class="controls-section settings-rail">
+                <div class="control-card manuscript-card control-group">
                     <label for="file-upload">Upload Manuscript:</label>
                     <input type="file" id="file-upload" accept=".txt,.docx,.pdf">
                     <div class="file-options">
                         <button id="clear-text">Clear</button>
                         <button id="format-text" class="format-btn">Format for Teleprompter</button>
+                        <button id="clear-formatting" type="button">Remove Formatting</button>
                     </div>
                     <div class="formatting-options" id="formatting-options">
                         <label class="checkbox-label">
@@ -65,56 +66,30 @@
                     </div>
                 </div>
                 
-                <div class="control-group">
-                    <label for="speed-control">Speed (words/min):</label>
-                    <input type="range" id="speed-control" min="60" max="300" value="150">
-                    <span id="speed-display">150</span>
-                </div>
-                
-                <div class="control-group">
-                    <label for="segment-length">Segment Length:</label>
-                    <div class="time-input-group">
-                        <div class="time-input">
-                            <input type="number" id="segment-minutes" min="0" max="99" value="10">
-                            <label for="segment-minutes">min</label>
-                        </div>
-                        <div class="time-separator">:</div>
-                        <div class="time-input">
-                            <input type="number" id="segment-seconds" min="0" max="59" value="0">
-                            <label for="segment-seconds">sec</label>
-                        </div>
+                <div class="control-card reading-card readback-card control-group">
+                    <label>Reading Setup:</label>
+                    <div class="compact-control">
+                        <label for="speed-control">Speed (words/min):</label>
+                        <input type="range" id="speed-control" min="30" max="300" value="55">
+                        <span id="speed-display">55</span>
                     </div>
-                    <div class="duration-info">
-                        <div class="info-row">
-                            <span>Word count: <span id="word-count">0</span></span>
-                        </div>
-                        <div class="info-row">
-                            <span>Expected duration: <span id="expected-duration">0:00</span></span>
-                        </div>
-                        <div class="info-row duration-diff" id="duration-diff">
-                            <span>Difference: <span id="diff-value">0:00</span></span>
-                        </div>
+                    <div class="compact-control">
+                        <label for="font-size">Font Size:</label>
+                        <input type="range" id="font-size" min="16" max="72" value="32">
+                        <span id="font-size-display">32px</span>
                     </div>
-                </div>
-                
-                <div class="control-group">
-                    <label for="font-size">Font Size:</label>
-                    <input type="range" id="font-size" min="16" max="72" value="48">
-                    <span id="font-size-display">48px</span>
-                </div>
-                
-                <div class="control-group">
-                    <label for="scheduled-start">Scheduled Start Time:</label>
-                    <div class="scheduled-time-group">
-                        <input type="datetime-local" id="scheduled-start" step="1">
-                        <button id="clear-schedule" class="control-btn">Clear</button>
+                    <div class="compact-control">
+                        <label for="text-width">Text Width:</label>
+                        <input type="range" id="text-width" min="20" max="100" value="20">
+                        <span id="text-width-display">20%</span>
                     </div>
-                    <div class="schedule-info" id="schedule-info">
-                        <span>No scheduled start time set</span>
-                    </div>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="reading-guide">
+                        Reading guide line
+                    </label>
                 </div>
-                
-                <div class="control-group">
+
+                <div class="control-card options-card control-group">
                     <label>Display Options:</label>
                     <div class="checkbox-group">
                         <label class="checkbox-label">
@@ -131,10 +106,81 @@
                         </label>
                     </div>
                 </div>
+
+                <div class="control-card cooldown-card control-group">
+                    <label for="preroll-seconds">Start Cooldown (seconds):</label>
+                    <input type="number" id="preroll-seconds" min="0" max="60" value="0">
+                </div>
+
+                <details class="control-card advanced-card control-group">
+                    <summary>Advanced timing</summary>
+                    <div class="advanced-content">
+                        <div class="control-subgroup">
+                            <label for="segment-length">Segment Length:</label>
+                            <div class="time-input-group">
+                                <div class="time-input">
+                                    <input type="number" id="segment-minutes" min="0" max="99" value="10">
+                                    <label for="segment-minutes">min</label>
+                                </div>
+                                <div class="time-separator">:</div>
+                                <div class="time-input">
+                                    <input type="number" id="segment-seconds" min="0" max="59" value="0">
+                                    <label for="segment-seconds">sec</label>
+                                </div>
+                            </div>
+                            <div class="duration-info">
+                                <div class="info-row">
+                                    <span>Word count: <span id="word-count-legacy">0</span></span>
+                                </div>
+                                <div class="info-row">
+                                    <span>Expected duration: <span id="expected-duration-legacy">0:00</span></span>
+                                </div>
+                                <div class="info-row duration-diff" id="duration-diff">
+                                    <span>Difference: <span id="diff-value">0:00</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="control-subgroup">
+                            <label for="scheduled-start">Scheduled Start Time:</label>
+                            <div class="scheduled-time-group">
+                                <input type="datetime-local" id="scheduled-start" step="1">
+                                <button id="clear-schedule" class="control-btn">Clear</button>
+                            </div>
+                            <div class="schedule-info" id="schedule-info">
+                                <span>No scheduled start time set</span>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <div class="control-card preset-controls control-group">
+                    <label for="preset-name">Settings Presets:</label>
+                    <input type="text" id="preset-name" maxlength="40" placeholder="Preset name">
+                    <div class="preset-actions">
+                        <button id="save-preset" type="button">Save</button>
+                        <select id="preset-select" aria-label="Saved presets"></select>
+                        <button id="load-preset" type="button">Load</button>
+                        <button id="delete-preset" type="button">Delete</button>
+                    </div>
+                </div>
+
             </div>
 
-            <div class="text-preview">
-                <h3>Text Preview</h3>
+            <div class="text-preview editor-workspace">
+                <div class="editor-header">
+                    <h3>Text Preview</h3>
+                    <div class="editor-format-toolbar format-toolbar">
+                        <button id="bold-text" type="button" title="Bold">B</button>
+                        <button id="italic-text" type="button" title="Italic">I</button>
+                        <button id="highlight-text" type="button" title="Highlight">HL</button>
+                        <button id="accent-text" type="button" title="Accent color">Color</button>
+                    </div>
+                    <div class="editor-stats">
+                        <span>Words <strong id="word-count">0</strong></span>
+                        <span>Expected <strong id="expected-duration">0:00</strong></span>
+                    </div>
+                </div>
                 <div class="preview-area">
                     <div id="text-preview" contenteditable="true">
                         <p>Welcome to the Teleprompter Controller!</p>
@@ -147,18 +193,34 @@
 
         <div class="control-panel">
             <div class="playback-controls">
-                <button id="start-btn" class="control-btn start">
-                    <span class="btn-icon">▶</span>
-                    Start
-                </button>
-                <button id="pause-btn" class="control-btn pause" disabled>
-                    <span class="btn-icon">⏸</span>
-                    Pause
-                </button>
-                <button id="reset-btn" class="control-btn reset">
-                    <span class="btn-icon">⏹</span>
-                    Reset
-                </button>
+                <div class="transport-cluster">
+                    <button id="start-btn" class="control-btn start">
+                        <span class="btn-icon">▶</span>
+                        Start
+                    </button>
+                    <button id="pause-btn" class="control-btn pause" disabled>
+                        <span class="btn-icon">⏸</span>
+                        Pause
+                    </button>
+                    <button id="reset-btn" class="control-btn reset">
+                        <span class="btn-icon">⏹</span>
+                        Reset
+                    </button>
+                </div>
+                <div class="seek-cluster">
+                    <button id="rewind-5-btn" class="control-btn rewind" disabled title="Alt+Left">
+                        <span class="btn-icon">↶</span>
+                        -5s
+                    </button>
+                    <button id="rewind-10-btn" class="control-btn rewind" disabled title="Alt+Shift+Left">
+                        <span class="btn-icon">↶</span>
+                        -10s
+                    </button>
+                    <button id="forward-5-btn" class="control-btn forward" disabled title="Alt+Right">
+                        <span class="btn-icon">↷</span>
+                        +5s
+                    </button>
+                </div>
             </div>
             
             <div class="timer-info">

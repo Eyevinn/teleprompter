@@ -14,10 +14,17 @@
         </div>
         
         <div class="text-area">
+            <div class="reading-guide-line" id="reading-guide-line"></div>
+
             <div class="scheduled-countdown" id="scheduled-countdown">
                 <div class="countdown-label">Scheduled Start In:</div>
                 <div class="countdown-time" id="countdown-time">00:00:00</div>
                 <div class="countdown-target" id="countdown-target">Starting at: --:--:--</div>
+            </div>
+
+            <div class="preroll-countdown" id="preroll-countdown">
+                <div class="countdown-label">Starting In:</div>
+                <div class="countdown-time" id="preroll-time">00:00</div>
             </div>
             
             <div id="prompter-text">
@@ -35,6 +42,19 @@
             <span class="status-indicator disconnected">●</span>
             <span class="status-text">Disconnected</span>
         </div>
+
+        <button class="mobile-mode-btn" id="mobile-mode-btn" type="button">
+            Mobile mode
+        </button>
+
+        <video
+            class="keep-awake-video"
+            id="keep-awake-video"
+            muted
+            playsinline
+            loop
+            aria-hidden="true"
+        ></video>
     </div>
     
     <script src="display.js"></script>
