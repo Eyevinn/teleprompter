@@ -143,6 +143,21 @@ function cancelPendingStart() {
     currentState.prerollStartAt = null;
 }
 
+function getCurrentElapsedMs() {
+    if (currentState.isPlaying && currentState.startTime) {
+        return Math.max(0, Date.now() - currentState.startTime);
+    }
+
+    return Math.max(0, currentState.pausedTime || 0);
+}
+
+function getStateSnapshot() {
+    return {
+        ...currentState,
+        elapsedMs: getCurrentElapsedMs()
+    };
+}
+
 function beginPlayback() {
     cancelPendingStart();
     const elapsedMs = currentState.pausedTime || 0;
@@ -359,7 +374,7 @@ function handleRegistration(ws, data) {
         // Send current state to new controller
         ws.send(JSON.stringify({
             type: 'stateSync',
-            state: currentState
+            state: getStateSnapshot()
         }));
         
     } else if (data.role === 'display') {
@@ -369,7 +384,7 @@ function handleRegistration(ws, data) {
         // Send current state to new display
         ws.send(JSON.stringify({
             type: 'stateSync',
-            state: currentState
+            state: getStateSnapshot()
         }));
     }
     

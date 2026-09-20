@@ -6,6 +6,8 @@ class TeleprompterDisplay {
         this.currentPosition = 0;
         this.startTime = null;
         this.pausedTime = 0;
+        this.playbackElapsedMs = 0;
+        this.lastAnimationTimestamp = null;
         this.segmentDuration = 10 * 60 * 1000;
         this.speed = 55;
         this.fontSize = 32;
@@ -265,7 +267,7 @@ class TeleprompterDisplay {
         if (state.prerollStartAt && state.prerollStartAt > Date.now()) {
             this.startPrerollCountdown(state.prerollStartAt);
         } else if (state.isPlaying) {
-            this.start(state.startTime, state.pausedTime);
+            this.start(state.startTime, state.pausedTime, state.elapsedMs);
         } else if (state.isPaused) {
             this.pause(state.pausedTime);
         } else {
@@ -501,7 +503,8 @@ class TeleprompterDisplay {
         this.isPaused = false;
         this.startTime = startTime || Date.now();
         this.pausedTime = pausedTime || 0;
-        this.setPlaybackPosition(elapsedMs);
+        this.playbackElapsedMs = Math.max(0, elapsedMs);
+        this.setPlaybackPosition(this.playbackElapsedMs);
         
         this.startScrolling();
         this.startTimer();
@@ -511,8 +514,11 @@ class TeleprompterDisplay {
         this.stopPrerollCountdown();
         this.isPlaying = false;
         this.isPaused = true;
-        this.pausedTime = pausedTime || 0;
-        this.setPlaybackPosition(this.pausedTime);
+        this.pausedTime = typeof pausedTime === 'number'
+            ? Math.max(0, pausedTime)
+            : this.playbackElapsedMs;
+        this.playbackElapsedMs = this.pausedTime;
+        this.setPlaybackPosition(this.playbackElapsedMs);
         
         this.stopScrolling();
         this.stopTimer();
@@ -524,6 +530,7 @@ class TeleprompterDisplay {
         this.isPaused = false;
         this.startTime = null;
         this.pausedTime = 0;
+        this.playbackElapsedMs = 0;
         
         this.stopScrolling();
         this.stopTimer();
@@ -547,7 +554,8 @@ class TeleprompterDisplay {
         const elapsedMs = typeof data.elapsedMs === 'number'
             ? data.elapsedMs
             : this.getElapsedMs();
-        this.setPlaybackPosition(elapsedMs);
+        this.playbackElapsedMs = Math.max(0, elapsedMs);
+        this.setPlaybackPosition(this.playbackElapsedMs);
 
         if (this.isPlaying) {
             this.startScrolling();
@@ -565,7 +573,7 @@ class TeleprompterDisplay {
             return this.pausedTime;
         }
 
-        return Math.max(0, Date.now() - (this.startTime || Date.now()));
+        return this.playbackElapsedMs;
     }
 
     setPlaybackPosition(elapsedMs, refreshMetrics = true) {
@@ -580,11 +588,17 @@ class TeleprompterDisplay {
     startScrolling() {
         this.stopScrolling();
         this.updateScrollMetrics();
+        this.lastAnimationTimestamp = null;
 
-        const scroll = () => {
+        const scroll = (timestamp) => {
             if (!this.isPlaying) return;
 
-            this.setPlaybackPosition(Date.now() - this.startTime, false);
+            if (this.lastAnimationTimestamp !== null) {
+                const deltaMs = Math.max(0, timestamp - this.lastAnimationTimestamp);
+                this.playbackElapsedMs += deltaMs;
+                this.setPlaybackPosition(this.playbackElapsedMs, false);
+            }
+            this.lastAnimationTimestamp = timestamp;
             
             this.animationId = requestAnimationFrame(scroll);
         };
@@ -597,6 +611,7 @@ class TeleprompterDisplay {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
+        this.lastAnimationTimestamp = null;
     }
     
     startTimer() {
@@ -614,7 +629,7 @@ class TeleprompterDisplay {
     }
     
     updateDisplay() {
-        const elapsed = this.startTime ? Date.now() - this.startTime : this.pausedTime;
+        const elapsed = this.getElapsedMs();
         const remaining = Math.max(0, this.segmentDuration - elapsed);
         
         this.updateCountdownDisplay(remaining);

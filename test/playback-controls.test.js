@@ -23,6 +23,9 @@ test('server can broadcast preroll and rewind playback state', () => {
     assert.match(server, /case 'rewind'/);
     assert.match(server, /cancelPendingStart/);
     assert.match(server, /beginPlayback/);
+    assert.match(server, /function getCurrentElapsedMs/);
+    assert.match(server, /function getStateSnapshot/);
+    assert.match(server, /elapsedMs: getCurrentElapsedMs\(\)/);
 });
 
 test('display handles preroll countdown and rewind messages', () => {
@@ -36,4 +39,5 @@ test('display handles preroll countdown and rewind messages', () => {
     assert.match(js, /applyPlaybackState/);
     assert.match(js, /setPlaybackPosition/);
     assert.match(js, /elapsedMs/);
+    assert.match(js, /typeof pausedTime === 'number'/);
 });

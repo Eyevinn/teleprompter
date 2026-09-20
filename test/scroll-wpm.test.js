@@ -18,12 +18,15 @@ test('display scroll speed is based on word count and real travel distance', () 
     assert.doesNotMatch(displayJs, /offsetTop \+ this\.prompterText\.scrollHeight/);
 });
 
-test('display scroll uses requestAnimationFrame timestamp instead of fixed 60fps frames', () => {
-    assert.match(displayJs, /Date\.now\(\) - this\.startTime/);
+test('display scroll advances from a locally measured requestAnimationFrame delta', () => {
+    assert.match(displayJs, /playbackElapsedMs/);
+    assert.match(displayJs, /lastAnimationTimestamp/);
+    assert.match(displayJs, /const deltaMs = Math\.max\(0, timestamp - this\.lastAnimationTimestamp\)/);
+    assert.match(displayJs, /this\.playbackElapsedMs \+= deltaMs/);
     assert.match(displayJs, /this\.currentPosition = this\.scrollMetrics\.firstLineCenter \+ elapsedMs \* this\.scrollMetrics\.pixelsPerMs/);
     assert.doesNotMatch(displayJs, /pixelsPerFrame\s*=\s*pixelsPerSecond\s*\/\s*60/);
     assert.doesNotMatch(displayJs, /this\.currentPosition \+=/);
-    assert.doesNotMatch(displayJs, /deltaMs/);
+    assert.doesNotMatch(displayJs, /Date\.now\(\) - this\.startTime/);
 });
 
 test('reset places the first rendered line on the reading center', () => {
